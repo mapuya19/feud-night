@@ -26,11 +26,11 @@ function join(s: GameState, id: string, name: string, teamId: string, claimCapta
 
 function setup(): GameState {
   const s = createGame("TEST", "tok", QUESTIONS, 4);
-  join(s, "p1", "Alice", "blue", true);
-  join(s, "p2", "Bob", "red", true);
+  join(s, "p1", "Alice", "diamond", true);
+  join(s, "p2", "Bob", "pearl", true);
   join(s, "p3", "Cara", "gold", true);
-  join(s, "p4", "Dev", "violet", true);
-  join(s, "p5", "Eli", "blue");
+  join(s, "p4", "Dev", "platinum", true);
+  join(s, "p5", "Eli", "diamond");
   return s;
 }
 
@@ -38,7 +38,7 @@ const clearBoard = (s: GameState) => s.question!.answers.forEach((_, i) => apply
 
 function playRound(s: GameState, buzzAs?: string): void {
   // buzz with the controlling team's rep (or an override)
-  applyPlayerAction(s, buzzAs ?? s.reps.blue!, { type: "buzz" });
+  applyPlayerAction(s, buzzAs ?? s.reps.diamond!, { type: "buzz" });
   clearBoard(s);
   applyHostAction(s, { type: "next_round" });
 }
@@ -46,22 +46,22 @@ function playRound(s: GameState, buzzAs?: string): void {
 describe("lobby", () => {
   it("lets players choose teams and provisional captains before the roster locks", () => {
     const s = setup();
-    expect(s.players.p1.teamId).toBe("blue");
-    expect(s.players.p2.teamId).toBe("red");
+    expect(s.players.p1.teamId).toBe("diamond");
+    expect(s.players.p2.teamId).toBe("pearl");
     expect(s.players.p3.teamId).toBe("gold");
-    expect(s.players.p4.teamId).toBe("violet");
-    expect(s.players.p5.teamId).toBe("blue");
-    expect(s.teams.blue.captainId).toBe("p1");
-    expect(s.teams.red.captainId).toBe("p2");
+    expect(s.players.p4.teamId).toBe("platinum");
+    expect(s.players.p5.teamId).toBe("diamond");
+    expect(s.teams.diamond.captainId).toBe("p1");
+    expect(s.teams.pearl.captainId).toBe("p2");
   });
 
   it("requires every team to have a player and captain before locking the roster", () => {
     const s = createGame("TEST", "tok", QUESTIONS, 4);
-    join(s, "p1", "Alice", "blue", true);
-    join(s, "p2", "Bob", "red", true);
+    join(s, "p1", "Alice", "diamond", true);
+    join(s, "p2", "Bob", "pearl", true);
     join(s, "p3", "Cara", "gold", true);
     expect(applyHostAction(s, { type: "start_game" }).ok).toBe(false);
-    join(s, "p4", "Dev", "violet");
+    join(s, "p4", "Dev", "platinum");
     expect(applyHostAction(s, { type: "start_game" }).ok).toBe(false);
     expect(applyPlayerAction(s, "p4", { type: "claim_captain" }).ok).toBe(true);
     expect(applyHostAction(s, { type: "start_game" }).ok).toBe(true);
@@ -71,42 +71,43 @@ describe("lobby", () => {
   it("enforces per-team and room capacity derived from the team count", () => {
     const s = createGame("TEST", "tok", QUESTIONS, 4);
     for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
-      join(s, `blue-${i}`, `Blue ${i}`, "blue");
+      join(s, `diamond-${i}`, `Diamond ${i}`, "diamond");
     }
-    expect(joinPlayer(s, "one-too-many", "Extra", "blue", false).ok).toBe(false);
+    expect(joinPlayer(s, "one-too-many", "Extra", "diamond", false).ok).toBe(false);
     expect(Object.keys(s.teams).length * MAX_TEAM_PLAYERS).toBe(32);
     expect(MAX_TEAMS * MAX_TEAM_PLAYERS).toBe(40); // 5-team ceiling
   });
 
   it("scales capacity down when the host lowers the team count in the lobby", () => {
     const s = createGame("TEST", "tok", QUESTIONS, 2);
-    expect(Object.keys(s.teams).sort()).toEqual(["blue", "red"]);
+    expect(Object.keys(s.teams).sort()).toEqual(["diamond", "pearl"]);
     for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
-      join(s, `blue-${i}`, `B${i}`, "blue");
-      join(s, `red-${i}`, `R${i}`, "red");
+      join(s, `diamond-${i}`, `D${i}`, "diamond");
+      join(s, `pearl-${i}`, `Pearl ${i}`, "pearl");
     }
-    expect(joinPlayer(s, "overflow", "Extra", "blue", false).ok).toBe(false);
+    expect(joinPlayer(s, "overflow", "Extra", "diamond", false).ok).toBe(false);
     expect(Object.keys(s.players).length).toBe(2 * MAX_TEAM_PLAYERS);
   });
 
   it("adjusts team count in the lobby but guards players and phases", () => {
     const s = setup();
-    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(false); // violet has a player
-    join(s, "p6", "Finn", "violet");
-    expect(applyPlayerAction(s, "p4", { type: "choose_team", teamId: "blue" }).ok).toBe(true);
-    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(false); // Finn is still on violet
+    expect(applyHostAction(s, { type: "set_team_count", count: 5 }).ok).toBe(true); // silver added empty
+    join(s, "p6", "Finn", "silver");
+    expect(applyHostAction(s, { type: "set_team_count", count: 4 }).ok).toBe(false); // Finn is on silver
     expect(applyPlayerAction(s, "p6", { type: "choose_team", teamId: "gold" }).ok).toBe(true);
+    expect(applyHostAction(s, { type: "set_team_count", count: 4 }).ok).toBe(true);
+    expect(s.teams.silver).toBeUndefined();
+    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(false); // gold still has players
+    expect(applyPlayerAction(s, "p3", { type: "choose_team", teamId: "diamond" }).ok).toBe(true);
+    expect(applyPlayerAction(s, "p6", { type: "choose_team", teamId: "pearl" }).ok).toBe(true);
     expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(true);
-    expect(s.teams.violet).toBeUndefined();
-    expect(applyHostAction(s, { type: "set_team_count", count: 2 }).ok).toBe(false); // gold still has players
-    expect(applyPlayerAction(s, "p3", { type: "choose_team", teamId: "blue" }).ok).toBe(true);
-    expect(applyPlayerAction(s, "p6", { type: "choose_team", teamId: "red" }).ok).toBe(true);
-    expect(applyHostAction(s, { type: "set_team_count", count: 2 }).ok).toBe(true);
-    expect(Object.keys(s.teams).length).toBe(MIN_TEAMS);
+    expect(s.teams.gold).toBeUndefined();
+    expect(Object.keys(s.teams)).toEqual(["diamond", "pearl", "platinum"]);
     // out-of-range requests clamp into the supported range instead of erroring
     expect(applyHostAction(s, { type: "set_team_count", count: 99 }).ok).toBe(true);
     expect(Object.keys(s.teams).length).toBe(MAX_TEAMS);
-    expect(s.teams.emerald.id).toBe("emerald"); // fifth team materializes on demand
+    expect(s.teams.silver.id).toBe("silver"); // fifth team materializes on demand
+    expect(applyPlayerAction(s, "p4", { type: "choose_team", teamId: "pearl" }).ok).toBe(true);
     expect(applyHostAction(s, { type: "set_team_count", count: 1 }).ok).toBe(true);
     expect(Object.keys(s.teams).length).toBe(MIN_TEAMS);
     applyHostAction(s, { type: "start_game" });
@@ -117,10 +118,10 @@ describe("lobby", () => {
 
   it("allows lobby team switches but rejects them after the host locks teams", () => {
     const s = setup();
-    expect(applyPlayerAction(s, "p5", { type: "choose_team", teamId: "violet" }).ok).toBe(true);
-    expect(s.players.p5.teamId).toBe("violet");
+    expect(applyPlayerAction(s, "p5", { type: "choose_team", teamId: "platinum" }).ok).toBe(true);
+    expect(s.players.p5.teamId).toBe("platinum");
     applyHostAction(s, { type: "start_game" });
-    expect(applyPlayerAction(s, "p5", { type: "choose_team", teamId: "blue" }).ok).toBe(false);
+    expect(applyPlayerAction(s, "p5", { type: "choose_team", teamId: "diamond" }).ok).toBe(false);
   });
 
   it("ends an in-progress game without awarding its unfinished bank", () => {
@@ -128,12 +129,12 @@ describe("lobby", () => {
     applyHostAction(s, { type: "start_game" });
     applyPlayerAction(s, "p1", { type: "buzz" });
     applyHostAction(s, { type: "reveal_answer", slot: 0 }); // points are in the bank, not scores yet
-    s.teams.red.score = 10;
+    s.teams.pearl.score = 10;
 
     expect(applyHostAction(s, { type: "end_game" }).ok).toBe(true);
     expect(s.phase).toBe("game_over");
-    expect(s.winnerTeamId).toBe("red");
-    expect(s.teams.blue.score).toBe(0);
+    expect(s.winnerTeamId).toBe("pearl");
+    expect(s.teams.diamond.score).toBe(0);
     expect(s.timer).toBeNull();
   });
 });
@@ -145,18 +146,18 @@ describe("faceoff", () => {
     expect(applyPlayerAction(s, "p5", { type: "buzz" }).ok).toBe(false); // not the rep
     expect(applyPlayerAction(s, "p1", { type: "buzz" }).ok).toBe(true);
     expect(s.phase).toBe("playing");
-    expect(s.controllingTeamId).toBe("blue");
+    expect(s.controllingTeamId).toBe("diamond");
     expect(applyPlayerAction(s, "p2", { type: "buzz" }).ok).toBe(false); // race lost
   });
 
   it("rep rotates with rounds", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
-    expect(s.reps.blue).toBe("p1"); // round 1 → players[0]
+    expect(s.reps.diamond).toBe("p1"); // round 1 → players[0]
     playRound(s);
-    expect(s.reps.blue).toBe("p5"); // round 2 → players[1]
+    expect(s.reps.diamond).toBe("p5"); // round 2 → players[1]
     playRound(s);
-    expect(s.reps.blue).toBe("p1"); // round 3 → players[2 % 2]
+    expect(s.reps.diamond).toBe("p1"); // round 3 → players[2 % 2]
   });
 });
 
@@ -175,7 +176,7 @@ describe("answers & scoring", () => {
     expect(s.pendingAnswer).toBeNull();
     clearBoard(s);
     expect(s.phase).toBe("round_over");
-    expect(s.teams.blue.score).toBe(qsum(s.question!)); // all answers, ×1
+    expect(s.teams.diamond.score).toBe(qsum(s.question!)); // all answers, ×1
     expect(s.lastAward?.reason).toBe("clear");
   });
 
@@ -189,13 +190,13 @@ describe("answers & scoring", () => {
     playRound(s); // round 2 (×1)
     playRound(s); // round 3 (×2)
     expect(s.roundIndex).toBe(3);
-    applyPlayerAction(s, s.reps.blue!, { type: "buzz" }); // round 4 face-off
+    applyPlayerAction(s, s.reps.diamond!, { type: "buzz" }); // round 4 face-off
     expect(applyHostAction(s, { type: "reveal_answer", slot: 0 }).ok).toBe(true);
     expect(s.question!.id).toBe(s.questionPool[3].id);
     applyHostAction(s, { type: "reveal_answer", slot: 1 });
     applyHostAction(s, { type: "reveal_answer", slot: 2 });
     applyHostAction(s, { type: "reveal_answer", slot: 3 });
-    expect(s.teams.blue.score).toBe(r1 + r2 + 2 * r3 + 2 * qsum(s.questionPool[3]));
+    expect(s.teams.diamond.score).toBe(r1 + r2 + 2 * r3 + 2 * qsum(s.questionPool[3]));
   });
 });
 
@@ -209,14 +210,14 @@ describe("strikes & steal", () => {
   it("3 strikes open a steal; higher survey answer wins between correct steals", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
-    applyPlayerAction(s, "p1", { type: "buzz" }); // blue controls
+    applyPlayerAction(s, "p1", { type: "buzz" }); // diamond controls
     strikeOut(s);
     expect(s.phase).toBe("steal");
     expect(s.timer?.kind).toBe("steal");
 
     expect(applyPlayerAction(s, "p2", { type: "submit_steal", text: "X" }).ok).toBe(true); // red captain
     expect(applyPlayerAction(s, "p3", { type: "submit_steal", text: "Y" }).ok).toBe(true); // gold captain
-    expect(applyPlayerAction(s, "p4", { type: "submit_steal", text: "Z" }).ok).toBe(true); // violet captain
+    expect(applyPlayerAction(s, "p4", { type: "submit_steal", text: "Z" }).ok).toBe(true); // platinum captain
     expect(s.phase).toBe("steal_reveal");
     expect(applyPlayerAction(s, "p2", { type: "submit_steal", text: "again" }).ok).toBe(false); // one shot only
 
@@ -225,14 +226,14 @@ describe("strikes & steal", () => {
     applyHostAction(s, {
       type: "resolve_steal",
       marks: [
-        { teamId: "red", slot: 0 },
+        { teamId: "pearl", slot: 0 },
         { teamId: "gold", slot: 1 },
-        { teamId: "violet", slot: null },
+        { teamId: "platinum", slot: null },
       ],
     });
     expect(s.phase).toBe("round_over");
-    expect(s.teams.red.score).toBe(70);
-    expect(s.teams.blue.score).toBe(0);
+    expect(s.teams.pearl.score).toBe(70);
+    expect(s.teams.diamond.score).toBe(0);
     expect(s.lastAward?.reason).toBe("steal");
   });
 
@@ -248,12 +249,12 @@ describe("strikes & steal", () => {
     applyHostAction(s, {
       type: "resolve_steal",
       marks: [
-        { teamId: "red", slot: null },
+        { teamId: "pearl", slot: null },
         { teamId: "gold", slot: null },
-        { teamId: "violet", slot: null },
+        { teamId: "platinum", slot: null },
       ],
     });
-    expect(s.teams.blue.score).toBe(40);
+    expect(s.teams.diamond.score).toBe(40);
     expect(s.lastAward?.reason).toBe("failed_steal");
   });
 
@@ -266,7 +267,7 @@ describe("strikes & steal", () => {
     expect(expireTimer(s)).toBe(true);
     expect(s.phase).toBe("steal_reveal");
     expect(s.steal?.submissions.length).toBe(1);
-    expect(s.steal?.submissions[0].teamId).toBe("red");
+    expect(s.steal?.submissions[0].teamId).toBe("pearl");
   });
 
   it("zero steal submissions can be resolved after timer expiry", () => {
@@ -281,7 +282,7 @@ describe("strikes & steal", () => {
     expect(s.steal?.submissions).toHaveLength(0);
     expect(applyHostAction(s, { type: "resolve_steal", marks: [] }).ok).toBe(true);
     expect(s.phase).toBe("round_over");
-    expect(s.teams.blue.score).toBe(40);
+    expect(s.teams.diamond.score).toBe(40);
     expect(s.lastAward?.reason).toBe("failed_steal");
   });
 
@@ -310,14 +311,14 @@ describe("final triple board", () => {
     expect(s.roundIndex).toBe(4);
 
     // The fifth board is worth triple and is still a normal face-off/play/steal board.
-    applyPlayerAction(s, s.reps.blue!, { type: "buzz" });
+    applyPlayerAction(s, s.reps.diamond!, { type: "buzz" });
     clearBoard(s);
     expect(s.phase).toBe("round_over");
-    expect(s.teams.blue.score).toBe(roundSums[0] + roundSums[1] + 2 * roundSums[2] + 2 * roundSums[3] + 3 * roundSums[4]);
+    expect(s.teams.diamond.score).toBe(roundSums[0] + roundSums[1] + 2 * roundSums[2] + 2 * roundSums[3] + 3 * roundSums[4]);
 
     applyHostAction(s, { type: "next_round" });
     expect(s.phase).toBe("game_over");
-    expect(s.winnerTeamId).toBe("blue");
+    expect(s.winnerTeamId).toBe("diamond");
   });
 });
 
@@ -334,7 +335,7 @@ describe("projection privacy", () => {
     expect(board.question!.slots[1].text).toBeNull();
     expect(host.question!.slots[1].text).toBe(s.question!.answers[1].text);
     expect(player.question!.slots[0].text).toBe(s.question!.answers[0].text);
-    expect(player.myTeamId).toBe("red");
+    expect(player.myTeamId).toBe("pearl");
     expect(host.players!.length).toBe(5);
     expect(player.players).toBeNull();
   });
@@ -351,7 +352,7 @@ describe("projection privacy", () => {
     const gold = project(s, { role: "player", playerId: "p3", isHost: false });
     expect(red.steal!.mySubmission).toBe("X1");
     expect(gold.steal!.mySubmission).toBeNull();
-    expect(gold.steal!.submittedTeamIds).toContain("red");
+    expect(gold.steal!.submittedTeamIds).toContain("pearl");
     expect(gold.steal!.results).toBeNull();
   });
 });

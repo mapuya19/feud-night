@@ -9,13 +9,13 @@ export const STRIKES_TO_STEAL = 3;
 /** Huddle time for simultaneous steals, ms. */
 export const STEAL_DURATION_MS = 15_000;
 
-/** Team palette and order. A room uses the first N of these (2–5 teams). */
+/** Team palette and order (top→bottom on screens). A room uses the first N (2–5). */
 export const TEAM_DEFAULTS = [
-  { id: "blue", name: "Team Blue", color: "#2563eb" },
-  { id: "red", name: "Team Red", color: "#dc2626" },
-  { id: "gold", name: "Team Gold", color: "#d97706" },
-  { id: "violet", name: "Team Violet", color: "#8b5cf6" },
-  { id: "emerald", name: "Team Emerald", color: "#059669" },
+  { id: "diamond", name: "Team Diamond", color: "#38bdf8" }, // Pokémon Diamond — cyan blue
+  { id: "pearl", name: "Team Pearl", color: "#f472b6" }, // Pokémon Pearl — pink
+  { id: "platinum", name: "Team Platinum", color: "#a78bfa" }, // Pokémon Platinum — platinum lavender
+  { id: "gold", name: "Team Gold", color: "#eab308" }, // Pokémon Gold — gold
+  { id: "silver", name: "Team Silver", color: "#9ca3af" }, // Pokémon Silver — silver
 ] as const;
 
 /** Teams per room can be tuned by the host between 2 and MAX_TEAMS. */
