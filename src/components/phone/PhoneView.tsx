@@ -13,13 +13,13 @@ export function PhoneView({ code }: { code: string }) {
   const { status, playerId, playerName, state, join, lastError } = useFeud();
 
   if (status === "error") {
-    return <Centered>⚠️ {lastError ?? "Can't reach the game server. Check your Wi-Fi."}</Centered>;
+    return <Centered fullScreen>⚠️ {lastError ?? "Can't reach the game server. Check your Wi-Fi."}</Centered>;
   }
-  if (!state) return <Centered>Connecting to room {code}…</Centered>;
+  if (!state) return <Centered fullScreen>Connecting to room {code}…</Centered>;
   if (!playerId) return <JoinScreen state={state} onJoin={join} defaultName={recallName()} />;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-10 pt-4">
+    <div className="phone-shell mx-auto flex w-full max-w-md flex-col gap-4">
       <PhoneHeader state={state} name={playerName ?? ""} />
       <AnimatePresence mode="wait">
         <motion.div key={state.phase} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -36,8 +36,12 @@ export function PhoneView({ code }: { code: string }) {
   );
 }
 
-function Centered({ children }: { children: React.ReactNode }) {
-  return <div className="flex min-h-dvh items-center justify-center p-6 text-center text-white/60">{children}</div>;
+function Centered({ children, fullScreen = false }: { children: React.ReactNode; fullScreen?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-center p-6 text-center text-white/60", fullScreen ? "min-h-dvh" : "min-h-48")}>
+      {children}
+    </div>
+  );
 }
 
 // ------------------------------------------------------------------- join
@@ -57,7 +61,7 @@ function JoinScreen({
   const selected = state.teams.find((team) => team.id === teamId);
   const captainAvailable = !!selected && !selected.captainName;
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 p-6">
+    <div className="phone-shell mx-auto flex w-full max-w-md flex-col justify-center gap-6">
       <div className="text-center">
         <h1 className="display text-5xl">
           Feud{" "}
@@ -77,6 +81,8 @@ function JoinScreen({
           onChange={(e) => setName(e.target.value)}
           maxLength={16}
           placeholder="Your name"
+          autoComplete="name"
+          autoCapitalize="words"
           autoFocus
           className="field display text-center text-xl"
         />
@@ -94,10 +100,11 @@ function JoinScreen({
                   setClaimCaptain(false);
                 }}
                 className={cn(
-                  "rounded-2xl border p-3 text-left transition",
+                  "min-h-20 touch-manipulation rounded-2xl border p-3 text-left transition",
                   active ? "bg-white/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.08]",
                   full && "cursor-not-allowed opacity-35",
                 )}
+                aria-pressed={active}
                 style={active ? { borderColor: team.color, boxShadow: `0 0 20px ${team.color}33` } : undefined}
               >
                 <span className="display block text-base" style={{ color: team.color }}>{team.name}</span>
@@ -108,7 +115,7 @@ function JoinScreen({
           })}
         </div>
         {selected && (
-          <label className={cn("flex items-center gap-2 rounded-xl border px-3 py-2 text-xs", captainAvailable ? "border-gold/20 bg-gold/[0.06] text-paper/65" : "border-white/10 text-white/35")}>
+          <label className={cn("flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs", captainAvailable ? "border-gold/20 bg-gold/[0.06] text-paper/65" : "border-white/10 text-white/35")}>
             <input
               type="checkbox"
               checked={claimCaptain && captainAvailable}
@@ -206,11 +213,12 @@ function LobbyPanel({ state }: { state: PublicState }) {
               disabled={active || full}
               onClick={() => playerAction({ type: "choose_team", teamId: team.id })}
               className={cn(
-                "rounded-xl border p-2.5 text-left transition",
+                "min-h-16 touch-manipulation rounded-xl border p-2.5 text-left transition",
                 active ? "bg-white/[0.1]" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.08]",
                 (active || full) && "cursor-default",
                 full && !active && "opacity-35",
               )}
+              aria-pressed={active}
               style={active ? { borderColor: team.color } : undefined}
             >
               <span className="display block text-sm" style={{ color: team.color }}>{team.name}</span>
@@ -260,6 +268,7 @@ function FaceoffPanel({ state }: { state: PublicState }) {
         <motion.button
           whileTap={{ scale: 0.94 }}
           onClick={() => playerAction({ type: "buzz" })}
+          aria-label="Buzz in for your team"
           className="no-select display h-44 w-full rounded-3xl border-4 border-red-300/60 bg-gradient-to-b from-red-500 to-red-700 text-4xl text-white animate-buzz-glow"
         >
           BUZZ
@@ -272,7 +281,7 @@ function FaceoffPanel({ state }: { state: PublicState }) {
       <div className="flex flex-col items-center gap-2">
         <span className="display text-xl text-white/60">🔔 Face-off in progress…</span>
         <span className="text-sm text-white/35">
-          Reps: {state.teams.map((t) => t.repName ?? "—").join(" vs ")}
+          Reps: {state.teams.map((t) => t.repName ?? "—").join(" vs ")}. Only reps can buzz.
         </span>
       </div>
     </Centered>
@@ -305,6 +314,8 @@ function PlayingPanel({ state }: { state: PublicState }) {
       <div className="display rounded-2xl border border-gold/40 bg-gold/10 p-3 text-center text-xl text-gold">
         YOUR TEAM IS UP · {state.strikes} strike{state.strikes === 1 ? "" : "s"}
       </div>
+
+      <p className="text-center text-sm text-white/50">Everyone sends suggestions. Your captain chooses one official answer for the host.</p>
 
       <SuggestBox />
 
@@ -347,6 +358,8 @@ function SuggestBox() {
         onChange={(e) => setText(e.target.value)}
         maxLength={60}
         placeholder="Shout an answer here…"
+        autoCapitalize="sentences"
+        enterKeyHint="send"
         className="field min-w-0 flex-1"
       />
       <Button variant="primary" type="submit" disabled={!text.trim()}>
@@ -370,7 +383,7 @@ function CaptainLock() {
             <button
               key={i}
               onClick={() => setText(s.text)}
-              className="display rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-xs text-white/80 active:scale-95"
+              className="display min-h-11 touch-manipulation rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-xs text-white/80 active:scale-95"
             >
               {s.text}
             </button>
@@ -390,13 +403,15 @@ function CaptainLock() {
           onChange={(e) => setText(e.target.value)}
           maxLength={60}
           placeholder="Final answer…"
+          autoCapitalize="sentences"
+          enterKeyHint="send"
           className="field min-w-0 flex-1 font-semibold focus:border-neon/70 focus:ring-neon/25"
         />
         <Button variant="gold" type="submit" disabled={!text.trim() && !pending}>
           Lock it
         </Button>
       </form>
-      {pending && <span className="text-center text-xs text-white/40">“{pending.text}” is in — awaiting host…</span>}
+      {pending && <span role="status" className="text-center text-xs text-white/40">“{pending.text}” is in — awaiting host…</span>}
     </div>
   );
 }
@@ -432,7 +447,7 @@ function StealPanel({ state }: { state: PublicState }) {
         <div className="flex flex-col items-center gap-2">
           <span className="display text-2xl text-gold">STEAL CHANCE!</span>
           {steal?.endsAt && <Countdown endsAt={steal.endsAt} offsetMs={serverOffsetMs} className="text-5xl" />}
-          <span className="text-sm text-white/40">Yell suggestions at your captain — they submit.</span>
+          <span className="text-sm text-white/40">Huddle with your team, then your captain submits one secret answer.</span>
         </div>
       </Centered>
     );
@@ -449,7 +464,7 @@ function StealPanel({ state }: { state: PublicState }) {
         <span>🔔 Rep: {myTeam?.repName ?? "—"}</span>
       </div>
       <StealForm onSubmit={(text) => playerAction({ type: "submit_steal", text })} />
-      <p className="text-center text-xs text-white/40">Both teams correct? The higher-ranked board answer wins the bank.</p>
+      <p className="text-center text-xs text-white/40">If more than one team is correct, the highest-ranked board answer wins the bank.</p>
     </div>
   );
 }
@@ -469,6 +484,8 @@ function StealForm({ onSubmit }: { onSubmit: (text: string) => void }) {
         onChange={(e) => setText(e.target.value)}
         maxLength={60}
         placeholder="Secret steal answer…"
+        autoCapitalize="sentences"
+        enterKeyHint="send"
         autoFocus
         className="field min-w-0 flex-1 border-gold/50 text-lg font-semibold focus:border-gold/70"
       />

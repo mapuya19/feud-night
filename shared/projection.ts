@@ -9,7 +9,6 @@ import type { GameState, Role } from "./types";
  *
  *  - Unrevealed board answers are hidden from everyone except the host.
  *  - Steal submissions stay hidden until steal_reveal (a captain sees their own).
- *  - Fast Money player 2 never sees player 1's answers until the reveal.
  */
 export interface Viewer {
   role: Role;

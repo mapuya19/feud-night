@@ -135,7 +135,7 @@ export function ErrorToast({ message, onDone }: { message: string; onDone: () =>
     return () => clearTimeout(t);
   }, [message, onDone]);
   return (
-    <div className="animate-pop-in fixed inset-x-4 top-4 z-50 rounded-2xl border border-bubble/50 bg-bubble/15 px-4 py-3 text-sm text-bubble backdrop-blur-xl">
+    <div role="alert" aria-live="assertive" className="animate-pop-in fixed inset-x-4 top-4 z-50 rounded-2xl border border-bubble/50 bg-bubble/15 px-4 py-3 text-sm text-bubble backdrop-blur-xl">
       {message}
     </div>
   );

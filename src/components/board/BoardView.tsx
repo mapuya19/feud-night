@@ -38,29 +38,25 @@ function Splash({ text }: { text: string }) {
 
 function Scoreboard({ state }: { state: PublicState }) {
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className="grid grid-cols-4 gap-3">
       {state.teams.map((t: PublicTeam) => (
         <div
           key={t.id}
           className={cn(
-            "rounded-2xl border bg-card px-4 py-3 transition-all duration-300",
+            "rounded-2xl border bg-card px-3 py-2.5 transition-all duration-300",
             t.isControlling ? "scale-[1.03] shadow-lg" : "border-white/15",
           )}
           style={t.isControlling ? { borderColor: t.color, boxShadow: `0 0 32px ${t.color}55` } : undefined}
         >
           <div className="flex items-baseline justify-between gap-2">
-            <span className="display truncate text-lg" style={{ color: t.color }}>
+            <span className="display tv-score-name truncate" style={{ color: t.color }}>
               {t.name}
             </span>
-            <motion.span key={t.score} initial={{ scale: 1.6, color: "#f5c518" }} animate={{ scale: 1, color: "#ffffff" }} className="display text-3xl tabular-nums">
+            <motion.span key={t.score} initial={{ scale: 1.6, color: "#f5c518" }} animate={{ scale: 1, color: "#ffffff" }} className="display tv-score-value tabular-nums">
               {t.score}
             </motion.span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/40">
-            <span>{t.playerCount} players</span>
-            {t.captainName && <span className="truncate">· 👑 {t.captainName}</span>}
-            {t.repName && <span className="truncate">· 🔔 {t.repName}</span>}
-          </div>
+          {t.isControlling && <div className="mt-1 text-center text-[10px] font-bold uppercase tracking-widest text-gold">in control</div>}
         </div>
       ))}
     </div>
@@ -86,16 +82,16 @@ function LobbyBoard({ state }: { state: PublicState }) {
       ? `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/play?g=${state.code}`
       : "";
   return (
-    <div className="tv flex flex-col items-center justify-center gap-10 p-10">
+    <div className="tv tv-stage flex flex-col items-center justify-center">
       <div>
-        <h1 className="display text-center text-7xl text-gold drop-shadow-[0_4px_24px_rgba(245,197,24,0.3)]">
+        <h1 className="display tv-lobby-title text-center text-gold drop-shadow-[0_4px_24px_rgba(245,197,24,0.3)]">
           Feud Night
         </h1>
         <p className="display mt-2 text-center text-lg text-white/50">4 teams · one apartment · total chaos</p>
       </div>
-      <div className="flex items-center gap-10 rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-10">
+      <div className="flex flex-wrap items-center justify-center gap-8 rounded-3xl border border-white/10 bg-white/[0.045] p-6 backdrop-blur-xl sm:p-8">
         <div className="flex flex-col items-center gap-3">
-          {joinUrl && <QRCodeSVG value={joinUrl} size={220} bgColor="#12121e" fgColor="#f4f4f8" level="M" />}
+          {joinUrl && <QRCodeSVG value={joinUrl} size={280} bgColor="#12121e" fgColor="#f4f4f8" level="M" />}
           <span className="text-xs text-white/40">scan to join</span>
         </div>
         <div className="flex flex-col items-center gap-2">
@@ -165,7 +161,7 @@ function Slot({ slot, index }: { slot: PublicSlot; index: number }) {
             initial={{ rotateX: 90, opacity: 0 }}
             animate={{ rotateX: 0, opacity: 1 }}
             transition={{ duration: 0.35 }}
-            className="display flex-1 truncate text-xl text-white sm:text-2xl"
+            className="tv-slot-text display flex-1 truncate text-white"
           >
             {slot.text}
           </motion.span>
@@ -174,7 +170,7 @@ function Slot({ slot, index }: { slot: PublicSlot; index: number }) {
         )}
       </AnimatePresence>
       <span className={cn("display shrink-0 text-xl tabular-nums", slot.revealed ? "text-gold" : "text-white/30")}>
-        {slot.points}
+        {slot.revealed ? slot.points : ""}
       </span>
     </motion.div>
   );
@@ -185,7 +181,7 @@ function RoundBoard({ state }: { state: PublicState }) {
   const q = state.question;
   const controlling = state.teams.find((t) => t.isControlling);
   return (
-    <div className="tv flex flex-col gap-4 p-6">
+    <div className="tv tv-stage flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <RoundTag state={state} />
         {state.question && (
@@ -196,7 +192,7 @@ function RoundBoard({ state }: { state: PublicState }) {
       </div>
 
       {q && (
-        <h2 className="display max-w-5xl text-balance text-3xl leading-[1.05] text-paper drop-shadow-[0_2px_18px_rgba(0,0,0,0.6)] sm:text-4xl">
+        <h2 className="display tv-question max-w-5xl text-balance leading-[1.05] text-paper drop-shadow-[0_2px_18px_rgba(0,0,0,0.6)]">
           {q.prompt}
         </h2>
       )}
@@ -212,7 +208,7 @@ function RoundBoard({ state }: { state: PublicState }) {
         <AnimatePresence mode="wait">
           {state.phase === "faceoff" && (
             <motion.div key="faceoff" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="display text-2xl text-white/60">
-              🔔 first to buzz takes control…
+              🔔 FACE-OFF · TEAM REPS BUZZ NOW
             </motion.div>
           )}
           {state.phase === "playing" && state.buzzWinnerName && (
@@ -224,14 +220,15 @@ function RoundBoard({ state }: { state: PublicState }) {
               className="display text-2xl"
               style={{ color: controlling?.color }}
             >
-              {controlling?.name} — {state.buzzWinnerName} buzzed in!
+              {controlling?.name} HAS CONTROL · KEEP GUESSING UNTIL 3 ✕
             </motion.div>
           )}
           {state.phase === "steal" && state.steal && (
             <motion.div key="steal" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-end gap-2">
               <div className="display text-2xl text-gold">
-                STEAL! {state.steal.endsAt ? <Countdown endsAt={state.steal.endsAt} offsetMs={serverOffsetMs} className="ml-2" /> : null}
+                STEAL ROUND · {state.steal.endsAt ? <Countdown endsAt={state.steal.endsAt} offsetMs={serverOffsetMs} className="ml-2" /> : null}
               </div>
+              <div className="text-right text-sm text-white/55">Other team captains: huddle and lock one secret answer.</div>
               <div className="flex gap-2">
                 {state.teams
                   .filter((t) => !t.isControlling)
@@ -306,7 +303,7 @@ function RoundBoard({ state }: { state: PublicState }) {
 function GameOver({ state }: { state: PublicState }) {
   const winner = state.teams.find((t) => t.id === state.winnerTeamId) ?? state.teams[0];
   return (
-    <div className="tv relative flex flex-col items-center justify-center gap-6 overflow-hidden p-10">
+    <div className="tv tv-stage relative flex flex-col items-center justify-center overflow-hidden">
       {["🎉", "🎊", "🥳", "✨", "🏆", "🎉", "🎊", "✨"].map((e, i) => (
         <motion.span
           key={i}

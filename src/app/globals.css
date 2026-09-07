@@ -115,14 +115,14 @@ body {
      Base styles are repeated per variant: Tailwind v4 can't @apply a
      component class inside another component class. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
+    @apply inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-2xl px-4 py-2.5
       font-display text-sm font-bold uppercase tracking-wide
       transition-[transform,box-shadow,filter,background-color] duration-100
       disabled:cursor-not-allowed disabled:opacity-40
       disabled:active:translate-y-0 disabled:active:shadow-none;
   }
   .btn-gold {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
+    @apply inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-2xl px-4 py-2.5
       font-display text-sm font-bold uppercase tracking-wide
       transition-[transform,box-shadow,filter,background-color] duration-100
       disabled:cursor-not-allowed disabled:opacity-40
@@ -131,7 +131,7 @@ body {
       hover:brightness-105 active:translate-y-1 active:shadow-[0_2px_0_-1px_#8a6a05];
   }
   .btn-blue {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
+    @apply inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-2xl px-4 py-2.5
       font-display text-sm font-bold uppercase tracking-wide
       transition-[transform,box-shadow,filter,background-color] duration-100
       disabled:cursor-not-allowed disabled:opacity-40
@@ -140,7 +140,7 @@ body {
       hover:brightness-110 active:translate-y-1 active:shadow-[0_2px_0_-1px_#1e3a8a];
   }
   .btn-red {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
+    @apply inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-2xl px-4 py-2.5
       font-display text-sm font-bold uppercase tracking-wide
       transition-[transform,box-shadow,filter,background-color] duration-100
       disabled:cursor-not-allowed disabled:opacity-40
@@ -149,7 +149,7 @@ body {
       hover:brightness-110 active:translate-y-1 active:shadow-[0_2px_0_-1px_#7f1d1d];
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5
+    @apply inline-flex min-h-11 touch-manipulation items-center justify-center gap-2 rounded-2xl px-4 py-2.5
       font-display text-sm font-bold uppercase tracking-wide
       transition-[transform,box-shadow,filter,background-color] duration-100
       disabled:cursor-not-allowed disabled:opacity-40
@@ -160,7 +160,7 @@ body {
 
   /* Inputs */
   .field {
-    @apply w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3.5
+    @apply w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3.5 text-base
       text-paper placeholder:font-normal placeholder:text-paper/30 outline-none transition
       focus:border-gold/70 focus:ring-2 focus:ring-gold/25;
   }
@@ -189,6 +189,36 @@ body {
 .tv {
   height: 100dvh;
   overflow: hidden;
+}
+
+/* Phone controllers need room for iPhone safe areas and reachable controls. */
+.phone-shell {
+  min-height: 100dvh;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom) + 1rem));
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+/* A TV is viewed at distance, so scale the information hierarchy by viewport. */
+.tv-stage {
+  gap: clamp(0.75rem, 1.8vh, 1.5rem);
+  padding: clamp(1rem, 2.2vw, 3rem);
+}
+.tv-question {
+  font-size: clamp(1.75rem, 3.1vw, 4.25rem);
+}
+.tv-slot-text {
+  font-size: clamp(1.2rem, 2vw, 2.8rem);
+}
+.tv-score-name {
+  font-size: clamp(1rem, 1.4vw, 1.75rem);
+}
+.tv-score-value {
+  font-size: clamp(1.8rem, 2.6vw, 3.75rem);
+}
+.tv-lobby-title {
+  font-size: clamp(3rem, 6vw, 7rem);
 }
 
 ::-webkit-scrollbar {
