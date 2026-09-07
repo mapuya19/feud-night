@@ -46,7 +46,7 @@ function Header({ state, status, code }: { state: PublicState; status: string; c
       ? `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/play?g=${code}`
       : "";
   return (
-    <header className="relative flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-white/[0.06] px-5 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:px-6">
+    <header className="relative z-30 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-white/10 bg-white/[0.06] px-5 py-4 shadow-[0_16px_50px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:px-6">
       <div className="flex flex-col">
         <span className="label text-bubble">Private control desk · do not cast</span>
         <span className="display mt-0.5 text-2xl text-white sm:text-3xl">
