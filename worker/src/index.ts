@@ -98,9 +98,14 @@ export class FeudRoom extends DurableObject {
 
     if (url.pathname.endsWith("/create") && request.method === "POST") {
       if (this.state) return json({ ok: true, code: this.state.code });
-      const body = (await request.json().catch(() => ({}))) as { hostToken?: string };
+      const body = (await request.json().catch(() => ({}))) as { hostToken?: string; teamCount?: number };
       if (!body.hostToken) return json({ error: "hostToken required" }, 400);
-      this.state = createGame(new URL(request.url).pathname.split("/")[2] ?? "????", body.hostToken, SURVEY);
+      this.state = createGame(
+        new URL(request.url).pathname.split("/")[2] ?? "????",
+        body.hostToken,
+        SURVEY,
+        Number(body.teamCount) || undefined,
+      );
       await this.persist();
       return json({ ok: true, code: this.state.code });
     }

@@ -21,6 +21,7 @@ export type HostAction =
   | { type: "next_round" }
   | { type: "resolve_steal"; marks: { teamId: string; slot: number | null }[] }
   | { type: "set_captain"; teamId: string; playerId: string }
+  | { type: "set_team_count"; count: number }
   | { type: "move_player"; playerId: string; teamId: string }
   | { type: "set_rep"; teamId: string; playerId: string }
   | { type: "set_team_name"; teamId: string; name: string }

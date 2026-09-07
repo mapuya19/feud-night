@@ -5,8 +5,9 @@ import {
   TEAM_DEFAULTS,
   MAX_ANSWER_LENGTH,
   MAX_NAME_LENGTH,
-  MAX_ROOM_PLAYERS,
   MAX_TEAM_PLAYERS,
+  MAX_TEAMS,
+  MIN_TEAMS,
 } from "./config";
 import type { GameState, SurveyQuestion, Team } from "./types";
 import type { HostAction, PlayerAction } from "./protocol";
@@ -19,13 +20,24 @@ export interface EngineResult {
 const ok: EngineResult = { ok: true };
 const fail = (error: string): EngineResult => ({ ok: false, error });
 
+/** Keep a requested team count inside the supported 2–4 range. */
+export function clampTeamCount(count: number): number {
+  return Math.max(MIN_TEAMS, Math.min(MAX_TEAMS, Math.round(count)));
+}
+
 // ---------------------------------------------------------------------------
 // Creation & joining
 // ---------------------------------------------------------------------------
 
-export function createGame(code: string, hostToken: string, pool: SurveyQuestion[]): GameState {
+export function createGame(
+  code: string,
+  hostToken: string,
+  pool: SurveyQuestion[],
+  teamCount: number = TEAM_DEFAULTS.length,
+): GameState {
+  const count = clampTeamCount(teamCount);
   const teams: Record<string, Team> = {};
-  for (const t of TEAM_DEFAULTS) {
+  for (const t of TEAM_DEFAULTS.slice(0, count)) {
     teams[t.id] = { ...t, name: String(t.name), score: 0, captainId: null, players: [] };
   }
   return {
@@ -67,7 +79,8 @@ export function joinPlayer(
   if (state.players[playerId]) return ok; // idempotent
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
   if (!trimmed) return fail("Name required");
-  if (Object.keys(state.players).length >= MAX_ROOM_PLAYERS) return fail("Room is full");
+  if (Object.keys(state.players).length >= Object.keys(state.teams).length * MAX_TEAM_PLAYERS)
+    return fail("Room is full");
   const team = state.teams[teamId];
   if (!team) return fail("Choose a valid team");
   if (team.players.length >= MAX_TEAM_PLAYERS) return fail("That team is full — choose another");
@@ -276,6 +289,24 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       const holder = state.controllingTeamId;
       if (holder) return awardBank(state, holder, "failed_steal");
       state.phase = "round_over";
+      return ok;
+    }
+
+    case "set_team_count": {
+      if (state.phase !== "lobby") return fail("Teams lock when the game starts");
+      const count = clampTeamCount(action.count);
+      const keep = new Set<string>(TEAM_DEFAULTS.slice(0, count).map((t) => t.id));
+      for (const [id, team] of Object.entries(state.teams)) {
+        if (!keep.has(id) && team.players.length > 0)
+          return fail("Move players off that team first");
+      }
+      for (const id of Object.keys(state.teams)) {
+        if (!keep.has(id)) delete state.teams[id];
+      }
+      for (const t of TEAM_DEFAULTS.slice(0, count)) {
+        if (!state.teams[t.id])
+          state.teams[t.id] = { ...t, name: String(t.name), score: 0, captainId: null, players: [] };
+      }
       return ok;
     }
 

@@ -162,8 +162,12 @@ export class GameClient {
 }
 
 /** POST /create on the worker → { code, hostToken }. */
-export async function createRoom(): Promise<{ code: string; hostToken: string }> {
-  const res = await fetch(`${HTTP_BASE}/create`, { method: "POST" });
+export async function createRoom(teamCount: number): Promise<{ code: string; hostToken: string }> {
+  const res = await fetch(`${HTTP_BASE}/create`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ teamCount }),
+  });
   if (!res.ok) throw new Error("Could not create a room");
   return res.json();
 }

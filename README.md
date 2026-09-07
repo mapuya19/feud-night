@@ -1,13 +1,13 @@
 # Feud Night 🎉
 
-A **4-team Family Feud-style party game** built for a ~30-person apartment
-birthday. Phones are controllers, a TV/projector is the board, and a host
-laptop runs the show. Real-time over WebSockets, free-tier hosted.
+A **Family Feud-style party game** for 2–4 teams (up to 8 players each, 32
+max). Phones are controllers, a TV/projector is the board, and a host laptop
+runs the show. Real-time over WebSockets, free-tier hosted.
 
 ## How it plays
 
 **Setup.** Host creates a room on their laptop. The TV shows a QR code.
-Guests scan → type a name → choose one of **4 teams** (up to 8 players each)
+Guests scan → type a name → choose a team (the host sets 2–4 teams)
 and may volunteer as that team’s provisional captain. The host can move players
 or correct captains, then locks the roster before play begins. Reps rotate every
 round so everyone gets a face-off moment.
@@ -139,7 +139,7 @@ daily cap tripping — it errors until 00:00 UTC, never charges.
 - **Questions**: edit `shared/questions.json`. Keep point totals ≈100 per
   question for that authentic board look.
 - **Personalized surveys**: send guests a Google Form before the party
-  ("name something the birthday person always says"…), tally responses,
+  ("name something the guest of honor always says"…), tally responses,
   and write them in as questions. This is the killer feature.
-- **Tuning**: round multipliers, steal seconds, Fast Money timers/target
+- **Tuning**: round multipliers, team count limits, and steal seconds
   live in `shared/config.ts`.

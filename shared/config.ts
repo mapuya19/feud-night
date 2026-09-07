@@ -9,7 +9,7 @@ export const STRIKES_TO_STEAL = 3;
 /** Huddle time for simultaneous steals, ms. */
 export const STEAL_DURATION_MS = 15_000;
 
-/** Team setup for a 4-team game (~7–8 players each at a 30-person party). */
+/** Team palette and order. A room uses the first N of these (2–4 teams). */
 export const TEAM_DEFAULTS = [
   { id: "blue", name: "Team Blue", color: "#2563eb" },
   { id: "red", name: "Team Red", color: "#dc2626" },
@@ -17,9 +17,12 @@ export const TEAM_DEFAULTS = [
   { id: "violet", name: "Team Violet", color: "#8b5cf6" },
 ] as const;
 
-/** Keeps a ~30-player party naturally balanced at 8 / 8 / 7 / 7. */
+/** Teams per room can be tuned by the host between 2 and MAX_TEAMS. */
+export const MIN_TEAMS = 2;
+export const MAX_TEAMS = TEAM_DEFAULTS.length;
+
+/** Per-team cap; room capacity = teamCount × this (16–32 players). */
 export const MAX_TEAM_PLAYERS = 8;
-export const MAX_ROOM_PLAYERS = TEAM_DEFAULTS.length * MAX_TEAM_PLAYERS;
 
 export const MAX_NAME_LENGTH = 16;
 export const MAX_ANSWER_LENGTH = 60;

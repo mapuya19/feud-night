@@ -6,6 +6,7 @@ import { useFeud } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { Button, Countdown, PHASE_LABEL, StatusDot } from "@/components/ui";
 import type { PublicState } from "@shared/projection";
+import { MAX_TEAM_PLAYERS, MAX_TEAMS, MIN_TEAMS } from "@shared/config";
 
 export function HostView({ code }: { code: string }) {
   const { status, state, lastError } = useFeud();
@@ -148,10 +149,36 @@ function LobbyHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   const total = state.teams.reduce((n, t) => n + t.playerCount, 0);
   const ready = state.teams.every((t) => t.playerCount > 0 && t.captainName);
+  const count = state.teams.length;
   return (
     <section className="host-panel flex flex-col gap-4">
-      <p className="text-sm text-white/50">
-        {total} players in. Players choose a squad and may volunteer as captain; move people or correct captains here before locking the roster.
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-white/50">
+          {total} players in. Players choose a squad and may volunteer as captain; move people or correct captains here before locking the roster.
+        </p>
+        <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+          <span className="label">teams</span>
+          <button
+            aria-label="Remove a team"
+            disabled={count <= MIN_TEAMS}
+            onClick={() => hostAction({ type: "set_team_count", count: count - 1 })}
+            className="btn-ghost h-9 w-9 !px-0 text-lg"
+          >
+            −
+          </button>
+          <span className="display w-6 text-center text-xl text-white">{count}</span>
+          <button
+            aria-label="Add a team"
+            disabled={count >= MAX_TEAMS}
+            onClick={() => hostAction({ type: "set_team_count", count: count + 1 })}
+            className="btn-ghost h-9 w-9 !px-0 text-lg"
+          >
+            +
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-white/35">
+        {count} teams · {count * MAX_TEAM_PLAYERS} player max ({MAX_TEAM_PLAYERS} per team). A team being removed must be empty first.
       </p>
       {state.teams.map((t) => (
         <TeamAdminRow key={t.id} state={state} teamId={t.id} />

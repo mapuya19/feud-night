@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { applyHostAction, applyPlayerAction, createGame, expireTimer, joinPlayer } from "@shared/engine";
+import { applyHostAction, applyPlayerAction, clampTeamCount, createGame, expireTimer, joinPlayer } from "@shared/engine";
 import { project } from "@shared/projection";
 import type { GameState, SurveyQuestion } from "@shared/types";
-import { MAX_ROOM_PLAYERS, MAX_TEAM_PLAYERS } from "@shared/config";
+import { MAX_TEAM_PLAYERS, MAX_TEAMS, MIN_TEAMS } from "@shared/config";
 
 function q(id: string, letter: string): SurveyQuestion {
   return {
@@ -68,13 +68,49 @@ describe("lobby", () => {
     expect(s.phase).toBe("faceoff");
   });
 
-  it("enforces the derived per-team and room capacity", () => {
+  it("enforces per-team and room capacity derived from the team count", () => {
     const s = createGame("TEST", "tok", QUESTIONS);
     for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
       join(s, `blue-${i}`, `Blue ${i}`, "blue");
     }
     expect(joinPlayer(s, "one-too-many", "Extra", "blue", false).ok).toBe(false);
-    expect(MAX_ROOM_PLAYERS).toBe(MAX_TEAM_PLAYERS * 4);
+    expect(Object.keys(s.teams).length * MAX_TEAM_PLAYERS).toBe(MAX_TEAMS * MAX_TEAM_PLAYERS);
+  });
+
+  it("scales capacity down when the host lowers the team count in the lobby", () => {
+    const s = createGame("TEST", "tok", QUESTIONS, 2);
+    expect(Object.keys(s.teams).sort()).toEqual(["blue", "red"]);
+    for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
+      join(s, `blue-${i}`, `B${i}`, "blue");
+      join(s, `red-${i}`, `R${i}`, "red");
+    }
+    expect(joinPlayer(s, "overflow", "Extra", "blue", false).ok).toBe(false);
+    expect(Object.keys(s.players).length).toBe(2 * MAX_TEAM_PLAYERS);
+  });
+
+  it("adjusts team count in the lobby but guards players and phases", () => {
+    const s = setup();
+    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(false); // violet has a player
+    join(s, "p6", "Finn", "violet");
+    expect(applyPlayerAction(s, "p4", { type: "choose_team", teamId: "blue" }).ok).toBe(true);
+    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(false); // Finn is still on violet
+    expect(applyPlayerAction(s, "p6", { type: "choose_team", teamId: "gold" }).ok).toBe(true);
+    expect(applyHostAction(s, { type: "set_team_count", count: 3 }).ok).toBe(true);
+    expect(s.teams.violet).toBeUndefined();
+    expect(applyHostAction(s, { type: "set_team_count", count: 2 }).ok).toBe(false); // gold still has players
+    expect(applyPlayerAction(s, "p3", { type: "choose_team", teamId: "blue" }).ok).toBe(true);
+    expect(applyPlayerAction(s, "p6", { type: "choose_team", teamId: "red" }).ok).toBe(true);
+    expect(applyHostAction(s, { type: "set_team_count", count: 2 }).ok).toBe(true);
+    expect(Object.keys(s.teams).length).toBe(MIN_TEAMS);
+    // out-of-range requests clamp into the supported range instead of erroring
+    expect(applyHostAction(s, { type: "set_team_count", count: 99 }).ok).toBe(true);
+    expect(Object.keys(s.teams).length).toBe(MAX_TEAMS);
+    expect(applyHostAction(s, { type: "set_team_count", count: 1 }).ok).toBe(true);
+    expect(Object.keys(s.teams).length).toBe(MIN_TEAMS);
+    applyHostAction(s, { type: "start_game" });
+    expect(applyHostAction(s, { type: "set_team_count", count: 4 }).ok).toBe(false); // locked after start
+    expect(clampTeamCount(1)).toBe(MIN_TEAMS);
+    expect(clampTeamCount(50)).toBe(MAX_TEAMS);
   });
 
   it("allows lobby team switches but rejects them after the host locks teams", () => {

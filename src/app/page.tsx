@@ -4,18 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "@/lib/ws-client";
 import { saveHost } from "@/lib/identity";
+import { MAX_TEAM_PLAYERS, MAX_TEAMS, MIN_TEAMS } from "@shared/config";
 
 export default function Home() {
   const router = useRouter();
+  const [teamCount, setTeamCount] = useState(4);
   const [code, setCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const maxPlayers = teamCount * MAX_TEAM_PLAYERS;
 
   const hostGame = async () => {
     setCreating(true);
     setError(null);
     try {
-      const room = await createRoom();
+      const room = await createRoom(teamCount);
       saveHost(room.code, room.hostToken);
       router.push(`/host?g=${room.code}`);
     } catch {
@@ -30,7 +34,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-dvh w-[min(96vw,64rem)] flex-col gap-12 px-4 py-12 md:py-16">
       <header className="flex flex-col items-start gap-5">
         <span className="chip">
-          <span aria-hidden>✦</span> Free · No downloads · 4 teams · ~30 players
+          <span aria-hidden>✦</span> Free · No downloads · {MIN_TEAMS}–{MAX_TEAMS} teams · up to {MAX_TEAMS * MAX_TEAM_PLAYERS} players
         </span>
         <h1 className="display text-6xl leading-[0.9] tracking-tight sm:text-8xl">
           Feud
@@ -39,9 +43,8 @@ export default function Home() {
           </span>
         </h1>
         <p className="max-w-2xl text-lg text-paper/65 md:text-xl">
-          Family Feud for your apartment, minus the studio budget. Phones are
-          controllers, the TV is the board, and the birthday person is the
-          survey.
+          A Family Feud-style party game for any living room. Phones are
+          controllers, the TV is the board, and your crew writes the answers.
         </p>
       </header>
 
@@ -55,7 +58,7 @@ export default function Home() {
             },
             {
               tag: "Survey says",
-              body: "Your team shouts answers from their phones; the captain locks one in. The face-off rep and captain can be different people. Three strikes gives the other teams a simultaneous steal — if multiple steals are right, the higher-ranked survey answer wins.",
+              body: "Your team shouts answers from their phones; the captain locks one in. Three strikes gives the other teams a simultaneous steal — if multiple steals are right, the higher-ranked survey answer wins.",
               accent: "text-neon",
             },
             {
@@ -78,10 +81,34 @@ export default function Home() {
         <div className="surface flex flex-col gap-5 p-6 md:p-7">
           <div>
             <span className="label text-gold">Host</span>
+            <div className="mt-2 flex flex-col gap-2">
+              <span className="text-xs text-paper/50">How many teams?</span>
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="Number of teams">
+                {[2, 3, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={teamCount === n}
+                    onClick={() => setTeamCount(n)}
+                    className={
+                      "display min-h-11 touch-manipulation rounded-2xl border py-2.5 text-lg transition " +
+                      (teamCount === n
+                        ? "border-gold bg-gold/15 text-gold"
+                        : "border-white/15 bg-white/[0.04] text-paper/60 hover:bg-white/10")
+                    }
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-paper/35">
+                {teamCount} teams · {maxPlayers} player max ({MAX_TEAM_PLAYERS} per team)
+              </span>
+            </div>
             <button
               onClick={hostGame}
               disabled={creating}
-              className="btn-gold mt-2 w-full py-4 text-base"
+              className="btn-gold mt-4 w-full py-4 text-base"
             >
               {creating ? "Creating room…" : "🎙 Create a room"}
             </button>
@@ -129,24 +156,25 @@ export default function Home() {
       </section>
 
       <section className="surface p-6 md:p-8">
-        <h2 className="display text-2xl">Playing in a small apartment</h2>
+        <h2 className="display text-2xl">How a game night runs</h2>
         <div className="mt-4 grid gap-6 text-sm leading-relaxed text-paper/65 md:grid-cols-3">
           <p>
             <span className="label mb-2 block text-gold">Setup</span>
-            Host creates a room on the laptop. The TV shows a QR code — guests
-            scan, type a name, choose one of four teams, and optionally claim
+            Host creates a room on the laptop and picks 2–4 teams. The TV shows a
+            QR code — guests scan, type a name, pick a team, and optionally claim
             its provisional captain spot before the host locks the roster.
           </p>
           <p>
             <span className="label mb-2 block text-neon">Space</span>
-            Only four reps ever need to stand up. Everyone else plays from
-            their team&apos;s corner of the apartment — suggestions, steals and
-            fast money all happen on phones.
+            Only one rep per team ever needs to stand up. Everyone else plays
+            from their seats — suggestions, steals and scoring all happen on
+            phones and the TV.
           </p>
           <p>
-            <span className="label mb-2 block text-bubble">Chaos</span>
-            Reconnects are seamless: lock your phone, close the tab, come back —
-            your team, score and captaincy are waiting.
+            <span className="label mb-2 block text-bubble">Scale</span>
+            Up to {MAX_TEAMS * MAX_TEAM_PLAYERS} players ({MAX_TEAM_PLAYERS} per team) — that&apos;s a
+            ceiling, not a target. Small groups are fine: every team just needs
+            one player and a captain to start.
           </p>
         </div>
       </section>
