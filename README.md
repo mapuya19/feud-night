@@ -82,6 +82,20 @@ meaningful game action**. Once a game reaches its champion screen, the host
 can also use **Close room & clear data** to immediately disconnect every
 screen and permanently delete that room's state.
 
+For a known room that cannot be accessed from its host browser, an operator can
+configure an `ADMIN_TOKEN` Worker secret and delete it without exposing a room
+listing or game data:
+
+```bash
+export ADMIN_TOKEN="$(openssl rand -hex 32)"
+printf %s "$ADMIN_TOKEN" | (cd worker && npx wrangler secret put ADMIN_TOKEN)
+curl -X DELETE "https://feud-server.m-apuya19.workers.dev/admin/rooms/ABCD" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+This endpoint intentionally accepts only a known room code; it does not list
+rooms.
+
 ## Run it locally
 
 ```bash

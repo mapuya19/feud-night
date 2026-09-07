@@ -9,9 +9,6 @@ export type Phase =
   | "steal" // 3 strikes; every opposing team huddles + secretly submits
   | "steal_reveal" // all steal answers shown; host judges
   | "round_over" // bank awarded; host advances
-  | "fast_money_intro" // winning team announced, pick 2 players
-  | "fast_money" // P1/P2 answering
-  | "fast_money_reveal" // dramatic scoring walkthrough
   | "game_over";
 
 export interface SurveyAnswer {
@@ -55,27 +52,9 @@ export interface StealSubmission {
 }
 
 export interface Timer {
-  kind: "steal" | "fast_money";
+  kind: "steal";
   endsAt: number; // epoch ms (server clock)
   durationMs: number;
-}
-
-export interface FmAnswer {
-  text: string;
-  points: number;
-  duplicate: boolean;
-  timedOut: boolean;
-  judged: boolean;
-}
-
-export interface FastMoneyState {
-  playerIds: string[];
-  playerIndex: number; // 0 or 1
-  questionIndex: number; // 0..FM_QUESTIONS-1
-  questions: SurveyQuestion[]; // the 5 FM questions
-  answers: FmAnswer[][]; // [questionIndex][playerIndex]
-  revealStep: number; // -1 = not started, 0..4 questions, 5 = totals
-  total: number;
 }
 
 export interface GameState {
@@ -104,7 +83,6 @@ export interface GameState {
   } | null;
   timer: Timer | null;
   lastAward: { teamId: string; points: number; reason: "clear" | "steal" | "failed_steal" } | null;
-  fastMoney: FastMoneyState | null;
   winnerTeamId: string | null;
   hostConnectedAt: number | null;
   /** Current round's rep per team (manual override wins until next round). */

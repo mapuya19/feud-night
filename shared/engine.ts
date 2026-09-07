@@ -1,15 +1,14 @@
 import {
-  FM_DURATION_MS,
-  FM_QUESTIONS,
   ROUND_MULTIPLIERS,
   STEAL_DURATION_MS,
   STRIKES_TO_STEAL,
   TEAM_DEFAULTS,
   MAX_ANSWER_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_ROOM_PLAYERS,
   MAX_TEAM_PLAYERS,
 } from "./config";
-import type { FmAnswer, GameState, SurveyQuestion, Team } from "./types";
+import type { GameState, SurveyQuestion, Team } from "./types";
 import type { HostAction, PlayerAction } from "./protocol";
 
 export interface EngineResult {
@@ -50,7 +49,6 @@ export function createGame(code: string, hostToken: string, pool: SurveyQuestion
     steal: null,
     timer: null,
     lastAward: null,
-    fastMoney: null,
     winnerTeamId: null,
     hostConnectedAt: Date.now(),
     reps: {},
@@ -69,7 +67,7 @@ export function joinPlayer(
   if (state.players[playerId]) return ok; // idempotent
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
   if (!trimmed) return fail("Name required");
-  if (Object.keys(state.players).length >= 80) return fail("Room is full");
+  if (Object.keys(state.players).length >= MAX_ROOM_PLAYERS) return fail("Room is full");
   const team = state.teams[teamId];
   if (!team) return fail("Choose a valid team");
   if (team.players.length >= MAX_TEAM_PLAYERS) return fail("That team is full — choose another");
@@ -310,112 +308,6 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       return ok;
     }
 
-    case "start_fast_money": {
-      if (state.phase !== "fast_money_intro" && state.phase !== "game_over")
-        return fail("Not in Fast Money setup");
-      const ids = action.playerIds;
-      if (!Array.isArray(ids) || ids.length !== 2) return fail("Pick exactly 2 players");
-      const winnerTeam = state.winnerTeamId ? state.teams[state.winnerTeamId] : null;
-      if (!winnerTeam) return fail("No winning team");
-      for (const id of ids) {
-        const p = state.players[id];
-        if (!p || p.teamId !== winnerTeam.id) return fail("Players must be from the winning team");
-      }
-      const fmQuestions: SurveyQuestion[] = [];
-      let cursor = state.questionCursor;
-      while (fmQuestions.length < FM_QUESTIONS && fmQuestions.length < state.questionPool.length) {
-        fmQuestions.push(state.questionPool[cursor % state.questionPool.length]);
-        cursor++;
-      }
-      state.questionCursor = cursor;
-      state.fastMoney = {
-        playerIds: ids,
-        playerIndex: 0,
-        questionIndex: 0,
-        questions: fmQuestions,
-        answers: fmQuestions.map(() => [
-          emptyFmAnswer(),
-          emptyFmAnswer(),
-        ]),
-        revealStep: -1,
-        total: 0,
-      };
-      state.timer = null;
-      state.phase = "fast_money";
-      return ok;
-    }
-
-    case "fm_start_question": {
-      if (state.phase !== "fast_money" || !state.fastMoney) return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      const cur = fm.answers[fm.questionIndex][fm.playerIndex];
-      if (cur.text !== "" && !cur.timedOut) return fail("Answer already submitted — judge it first");
-      if (cur.judged) return fail("Already judged — advance the question");
-      const ms = FM_DURATION_MS[fm.playerIndex];
-      state.timer = { kind: "fast_money", endsAt: Date.now() + ms, durationMs: ms };
-      return ok;
-    }
-
-    case "fm_judge": {
-      if (state.phase !== "fast_money" || !state.fastMoney) return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      const cur = fm.answers[fm.questionIndex][fm.playerIndex];
-      if (cur.text === "" && !cur.timedOut) return fail("No answer submitted yet");
-      cur.points = Math.max(0, Math.min(100, Math.round(action.points)));
-      cur.duplicate = action.duplicate;
-      if (cur.duplicate) cur.points = 0;
-      cur.judged = true;
-      clearTimer(state);
-      return ok;
-    }
-
-    case "fm_next_question": {
-      if (state.phase !== "fast_money" || !state.fastMoney) return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      const cur = fm.answers[fm.questionIndex][fm.playerIndex];
-      if (!cur.judged) return fail("Judge the current answer first");
-      if (fm.questionIndex + 1 >= fm.questions.length) return fail("Last question — advance the player");
-      fm.questionIndex++;
-      clearTimer(state);
-      return ok;
-    }
-
-    case "fm_next_player": {
-      if (state.phase !== "fast_money" || !state.fastMoney) return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      if (fm.playerIndex !== 0) return fail("Already on player 2");
-      if (!fm.answers[fm.questions.length - 1][0].judged) return fail("Player 1 hasn't finished");
-      fm.playerIndex = 1;
-      fm.questionIndex = 0;
-      clearTimer(state);
-      return ok;
-    }
-
-    case "fm_reveal_step": {
-      if (state.phase !== "fast_money" && state.phase !== "fast_money_reveal") return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      if (!fm) return fail("No Fast Money state");
-      if (!fm.answers[fm.questions.length - 1][1].judged) return fail("Player 2 hasn't finished");
-      if (state.phase === "fast_money") {
-        state.phase = "fast_money_reveal";
-        fm.revealStep = -1;
-        fm.total = 0;
-        clearTimer(state);
-        return ok;
-      }
-      if (fm.revealStep < fm.questions.length) {
-        fm.revealStep++;
-        if (fm.revealStep > 0) {
-          const q = fm.revealStep - 1;
-          fm.total += fm.answers[q][0].points + fm.answers[q][1].points;
-        }
-        return ok;
-      }
-      // stepping past totals → game over
-      state.phase = "game_over";
-      return ok;
-    }
-
     case "end_game": {
       state.phase = "game_over";
       if (state.winnerTeamId === null) {
@@ -515,19 +407,6 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
       return ok;
     }
 
-    case "fm_answer": {
-      if (state.phase !== "fast_money" || !state.fastMoney) return fail("Not in Fast Money");
-      const fm = state.fastMoney;
-      if (fm.playerIds[fm.playerIndex] !== playerId) return fail("Not your Fast Money turn");
-      const cur = fm.answers[fm.questionIndex][fm.playerIndex];
-      if (cur.text !== "" || cur.timedOut) return fail("Already answered");
-      const text = action.text.trim().slice(0, MAX_ANSWER_LENGTH);
-      if (!text) return fail("Empty answer");
-      cur.text = text;
-      clearTimer(state);
-      return ok;
-    }
-
     default:
       return fail("Unknown player action");
     }
@@ -557,16 +436,6 @@ export function expireTimer(state: GameState): boolean {
     state.phase = "steal_reveal";
     return true;
   }
-  if (kind === "fast_money") {
-    if (state.phase !== "fast_money" || !state.fastMoney) return false;
-    const fm = state.fastMoney;
-    const cur = fm.answers[fm.questionIndex][fm.playerIndex];
-    if (cur.text === "" && !cur.timedOut) {
-      cur.timedOut = true;
-      return true;
-    }
-    return false;
-  }
   return false;
 }
 
@@ -578,10 +447,6 @@ export function timerDeadline(state: GameState): number | null {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function emptyFmAnswer(): FmAnswer {
-  return { text: "", points: 0, duplicate: false, timedOut: false, judged: false };
-}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];

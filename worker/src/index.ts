@@ -90,6 +90,12 @@ export class FeudRoom extends DurableObject {
     const url = new URL(request.url);
     await this.ensureLoaded();
 
+    if (url.pathname.endsWith("/admin-close") && request.method === "DELETE") {
+      if (!this.state) return new Response(null, { status: 404 });
+      await this.closeRoom("Room closed by an administrator");
+      return json({ ok: true });
+    }
+
     if (url.pathname.endsWith("/create") && request.method === "POST") {
       if (this.state) return json({ ok: true, code: this.state.code });
       const body = (await request.json().catch(() => ({}))) as { hostToken?: string };

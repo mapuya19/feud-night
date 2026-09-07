@@ -6,7 +6,6 @@ import { useFeud } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { Countdown, CountdownBar, PHASE_LABEL } from "@/components/ui";
 import type { PublicSlot, PublicState, PublicTeam } from "@shared/projection";
-import { FM_WIN_TARGET } from "@shared/config";
 
 export function BoardView() {
   const { state, status, lastError } = useFeud();
@@ -20,12 +19,6 @@ export function BoardView() {
     case "steal_reveal":
     case "round_over":
       return <RoundBoard state={state} />;
-    case "fast_money_intro":
-      return <FastMoneyIntro state={state} />;
-    case "fast_money":
-      return <FastMoneyLive state={state} />;
-    case "fast_money_reveal":
-      return <FastMoneyReveal state={state} />;
     case "game_over":
       return <GameOver state={state} />;
     default:
@@ -308,104 +301,10 @@ function RoundBoard({ state }: { state: PublicState }) {
   );
 }
 
-// -------------------------------------------------------------- fast money
-
-function FastMoneyIntro({ state }: { state: PublicState }) {
-  const winner = state.teams.find((t) => t.id === state.winnerTeamId) ?? state.teams[0];
-  return (
-    <div className="tv flex flex-col items-center justify-center gap-6 p-10">
-      <div className="display text-3xl text-white/50">winning team</div>
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 16 }}
-        className="display rounded-3xl border-4 px-12 py-8 text-6xl"
-        style={{ borderColor: winner.color, color: winner.color, background: `${winner.color}14` }}
-      >
-        {winner.name}
-      </motion.div>
-      <div className="display animate-pulse text-4xl text-gold">⚡ FAST MONEY ⚡</div>
-      <p className="max-w-md text-center text-white/50">
-        Host picks two players. Everyone else: scream wrong answers at them.
-      </p>
-      <Scoreboard state={state} />
-    </div>
-  );
-}
-
-function FastMoneyLive({ state }: { state: PublicState }) {
-  const { serverOffsetMs } = useFeud();
-  const fm = state.fastMoney!;
-  return (
-    <div className="tv flex flex-col items-center justify-center gap-8 p-10">
-      <div className="display flex items-center gap-4 text-2xl text-gold">
-        ⚡ Fast Money · {fm.activePlayerName} · Q{fm.questionIndex + 1}/{fm.questionCount}
-      </div>
-      {fm.timer && (
-        <div className="flex w-full max-w-2xl flex-col items-center gap-2">
-          <Countdown endsAt={fm.timer.endsAt} offsetMs={serverOffsetMs} className="text-7xl" />
-          <CountdownBar endsAt={fm.timer.endsAt} durationMs={fm.timer.durationMs} offsetMs={serverOffsetMs} />
-        </div>
-      )}
-      {fm.prompt ? (
-        <h2 className="display max-w-4xl text-center text-4xl leading-tight text-white sm:text-5xl">{fm.prompt}</h2>
-      ) : (
-        <div className="display animate-pulse text-3xl text-white/40">waiting for host…</div>
-      )}
-      <Scoreboard state={state} />
-    </div>
-  );
-}
-
-function FastMoneyReveal({ state }: { state: PublicState }) {
-  const fm = state.fastMoney!;
-  const step = fm.reveal?.step ?? -1;
-  return (
-    <div className="tv flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <div className="display text-3xl text-gold">⚡ Fast Money Reveal</div>
-        <motion.div
-          key={fm.reveal?.total}
-          initial={{ scale: 1.5 }}
-          animate={{ scale: 1 }}
-          className={cn("display text-5xl tabular-nums", fm.reveal && fm.reveal.total >= FM_WIN_TARGET ? "text-emerald-400" : "text-white")}
-        >
-          {fm.reveal?.total ?? 0} / {FM_WIN_TARGET}
-        </motion.div>
-      </div>
-      <div className="grid flex-1 grid-rows-5 gap-2">
-        {fm.reveal!.prompts.map((prompt, qi) => {
-          const shown = step >= qi;
-          return (
-            <div key={qi} className={cn("rounded-xl border p-3", shown ? "border-white/15 bg-card" : "border-transparent bg-white/[0.02] opacity-50")}>
-              <div className="flex items-center justify-between gap-4">
-                <span className="display truncate text-lg text-white/80">{prompt}</span>
-                <div className="flex shrink-0 gap-6">
-                  {[0, 1].map((pi) => {
-                    const row = fm.reveal!.rows[qi][pi];
-                    return (
-                      <div key={pi} className="w-56 text-right">
-                        <div className={cn("display truncate text-lg", row.duplicate ? "text-red-400 line-through" : "text-white")}>
-                          {shown ? (row.text || (row.timedOut ? "(time)" : "—")) : "?"}
-                        </div>
-                        <div className="display text-sm text-gold tabular-nums">{shown ? row.points : "·"}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <Scoreboard state={state} />
-    </div>
-  );
-}
+// ---------------------------------------------------------------- game over
 
 function GameOver({ state }: { state: PublicState }) {
   const winner = state.teams.find((t) => t.id === state.winnerTeamId) ?? state.teams[0];
-  const fmTotal = state.fastMoney?.total ?? 0;
   return (
     <div className="tv relative flex flex-col items-center justify-center gap-6 overflow-hidden p-10">
       {["🎉", "🎊", "🥳", "✨", "🏆", "🎉", "🎊", "✨"].map((e, i) => (
@@ -423,9 +322,6 @@ function GameOver({ state }: { state: PublicState }) {
       <div className="display text-7xl" style={{ color: winner.color }}>
         {winner.name}
       </div>
-      {fmTotal > 0 && (
-        <div className="display text-3xl text-gold">Fast Money: {fmTotal} points {fmTotal >= FM_WIN_TARGET ? "— JACKPOT!" : ""}</div>
-      )}
       <Scoreboard state={state} />
     </div>
   );

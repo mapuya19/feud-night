@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyHostAction, applyPlayerAction, createGame, expireTimer, joinPlayer } from "@shared/engine";
 import { project } from "@shared/projection";
 import type { GameState, SurveyQuestion } from "@shared/types";
+import { MAX_ROOM_PLAYERS, MAX_TEAM_PLAYERS } from "@shared/config";
 
 function q(id: string, letter: string): SurveyQuestion {
   return {
@@ -65,6 +66,15 @@ describe("lobby", () => {
     expect(applyPlayerAction(s, "p4", { type: "claim_captain" }).ok).toBe(true);
     expect(applyHostAction(s, { type: "start_game" }).ok).toBe(true);
     expect(s.phase).toBe("faceoff");
+  });
+
+  it("enforces the derived per-team and room capacity", () => {
+    const s = createGame("TEST", "tok", QUESTIONS);
+    for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
+      join(s, `blue-${i}`, `Blue ${i}`, "blue");
+    }
+    expect(joinPlayer(s, "one-too-many", "Extra", "blue", false).ok).toBe(false);
+    expect(MAX_ROOM_PLAYERS).toBe(MAX_TEAM_PLAYERS * 4);
   });
 
   it("allows lobby team switches but rejects them after the host locks teams", () => {
@@ -306,29 +316,4 @@ describe("projection privacy", () => {
     expect(gold.steal!.submittedTeamIds).toContain("red");
     expect(gold.steal!.results).toBeNull();
   });
-
-  it("hides fast money P1 answers from P2 and board until reveal", () => {
-    const s = setup();
-    toFastMoneyLite(s);
-    applyHostAction(s, { type: "fm_start_question" });
-    applyPlayerAction(s, "p1", { type: "fm_answer", text: "secret" });
-    const p2 = project(s, { role: "player", playerId: "p2", isHost: false });
-    const p1 = project(s, { role: "player", playerId: "p5", isHost: false }); // FM player 2
-    const board = project(s, { role: "board", isHost: false });
-    const host = project(s, { role: "host", isHost: true });
-    for (const v of [p2, p1, board]) {
-      expect(v.fastMoney!.reveal).toBeNull();
-      expect(v.fastMoney!.hostQuestion).toBeNull();
-    }
-    expect(host.fastMoney!.hostCurrent?.text).toBe("secret");
-    expect(host.fastMoney!.hostQuestion!.answers.length).toBe(4);
-    expect(p1.fastMoney!.myAnswerState).toBeNull(); // p1 is the active answerer, not p5
-  });
 });
-
-/** Fast money setup without playing the full 4 rounds (uses end_game shortcut). */
-function toFastMoneyLite(s: GameState): void {
-  applyHostAction(s, { type: "start_game" });
-  applyHostAction(s, { type: "end_game" });
-  expect(applyHostAction(s, { type: "start_fast_money", playerIds: ["p1", "p5"] }).ok).toBe(true);
-}

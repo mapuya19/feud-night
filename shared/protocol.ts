@@ -24,12 +24,6 @@ export type HostAction =
   | { type: "move_player"; playerId: string; teamId: string }
   | { type: "set_rep"; teamId: string; playerId: string }
   | { type: "set_team_name"; teamId: string; name: string }
-  | { type: "start_fast_money"; playerIds: string[] }
-  | { type: "fm_start_question" }
-  | { type: "fm_judge"; points: number; duplicate: boolean }
-  | { type: "fm_next_question" }
-  | { type: "fm_next_player" }
-  | { type: "fm_reveal_step" }
   | { type: "end_game" }
   | { type: "close_room" }
   | { type: "reset_game" };
@@ -41,8 +35,7 @@ export type PlayerAction =
   | { type: "buzz" }
   | { type: "suggest"; text: string }
   | { type: "lock_answer"; text: string }
-  | { type: "submit_steal"; text: string }
-  | { type: "fm_answer"; text: string };
+  | { type: "submit_steal"; text: string };
 
 /** Worker → Client. */
 export type ServerMessage =

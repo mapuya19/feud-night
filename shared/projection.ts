@@ -43,29 +43,6 @@ export interface PublicSteal {
   results: { teamId: string; text: string; matched: boolean; matchedText: string | null }[] | null;
 }
 
-export interface PublicFastMoney {
-  playerNames: string[];
-  playerIndex: number;
-  activePlayerName: string | null;
-  questionIndex: number;
-  questionCount: number;
-  prompt: string | null;
-  timer: { endsAt: number; durationMs: number } | null;
-  /** Set for the active answerer (their own current answer). */
-  myAnswerState: "pending" | "submitted" | null;
-  /** Host only: the submitted answer awaiting judgment. */
-  hostCurrent: { text: string; timedOut: boolean } | null;
-  /** Host only: current FM question's survey answers, for judging points. */
-  hostQuestion: { answers: { text: string; points: number }[] } | null;
-  reveal: {
-    prompts: string[];
-    rows: { text: string; points: number; duplicate: boolean; timedOut: boolean }[][];
-    step: number;
-    total: number;
-  } | null;
-  total: number;
-}
-
 export interface PublicState {
   code: string;
   phase: GameState["phase"];
@@ -87,7 +64,6 @@ export interface PublicState {
   pendingAnswer: { text: string; byName: string } | null; // host + controlling team
   suggestions: { text: string; byName: string }[]; // host + controlling team
   steal: PublicSteal | null;
-  fastMoney: PublicFastMoney | null;
   lastAward: { teamId: string; teamName: string; points: number; reason: string } | null;
   winnerTeamId: string | null;
 }
@@ -164,50 +140,6 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     };
   }
 
-  let fastMoney: PublicFastMoney | null = null;
-  if (state.fastMoney) {
-    const fm = state.fastMoney;
-    const names = fm.playerIds.map((id) => state.players[id]?.name ?? "?");
-    const activeId = fm.playerIds[fm.playerIndex];
-    const activeQuestion = fm.questions[fm.questionIndex];
-    const cur = fm.answers[fm.questionIndex]?.[fm.playerIndex];
-    const inReveal = state.phase === "fast_money_reveal" || state.phase === "game_over";
-    const amActive = viewer.playerId === activeId;
-
-    fastMoney = {
-      playerNames: names,
-      playerIndex: fm.playerIndex,
-      activePlayerName: state.phase === "fast_money" ? names[fm.playerIndex] : null,
-      questionIndex: fm.questionIndex,
-      questionCount: fm.questions.length,
-      prompt:
-        state.phase === "fast_money" && (viewer.isHost || amActive || viewer.role === "board")
-          ? activeQuestion?.prompt ?? null
-          : inReveal
-            ? null
-            : null,
-      timer: state.timer?.kind === "fast_money" ? { endsAt: state.timer.endsAt, durationMs: state.timer.durationMs } : null,
-      myAnswerState: amActive ? (cur && (cur.text !== "" || cur.timedOut) ? "submitted" : "pending") : null,
-      hostCurrent:
-        viewer.isHost && cur && (cur.text !== "" || cur.timedOut)
-          ? { text: cur.text, timedOut: cur.timedOut }
-          : null,
-      hostQuestion:
-        viewer.isHost && state.phase === "fast_money" && activeQuestion
-          ? { answers: activeQuestion.answers.map((a) => ({ text: a.text, points: a.points })) }
-          : null,
-      reveal: inReveal
-        ? {
-            prompts: fm.questions.map((q) => q.prompt),
-            rows: fm.answers.map((row) => row.map((a) => ({ text: a.text, points: a.points, duplicate: a.duplicate, timedOut: a.timedOut }))),
-            step: fm.revealStep,
-            total: fm.total,
-          }
-        : null,
-      total: fm.total,
-    };
-  }
-
   return {
     code: state.code,
     phase: state.phase,
@@ -234,7 +166,6 @@ export function project(state: GameState, viewer: Viewer): PublicState {
         ? state.suggestions.map((s) => ({ text: s.text, byName: s.byName }))
         : [],
     steal,
-    fastMoney,
     lastAward: state.lastAward
       ? {
           teamId: state.lastAward.teamId,

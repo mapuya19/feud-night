@@ -10,6 +10,8 @@ const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ"; // no I, L, O — QR-code frien
 
 interface Env {
   GAME_ROOM: DurableObjectNamespace;
+  /** Optional Worker secret used only for the known-room admin delete endpoint. */
+  ADMIN_TOKEN?: string;
 }
 
 function code(): string {
@@ -25,8 +27,8 @@ function roomStub(env: Env, roomCode: string) {
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
-  "access-control-allow-headers": "content-type",
+  "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+  "access-control-allow-headers": "content-type, authorization",
 };
 
 function json(data: unknown, status = 200): Response {
@@ -59,6 +61,16 @@ export default {
         }
       }
       return json({ error: "Could not allocate a room code" }, 500);
+    }
+
+    const adminDeleteMatch = url.pathname.match(/^\/admin\/rooms\/([A-Z]{4})$/);
+    if (adminDeleteMatch && request.method === "DELETE") {
+      if (!env.ADMIN_TOKEN || request.headers.get("authorization") !== `Bearer ${env.ADMIN_TOKEN}`) {
+        return json({ error: "Unauthorized" }, 401);
+      }
+      return roomStub(env, adminDeleteMatch[1]).fetch(`https://do/room/${adminDeleteMatch[1]}/admin-close`, {
+        method: "DELETE",
+      });
     }
 
     const wsMatch = url.pathname.match(/^\/room\/([A-Z]{4})\/ws$/);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFeud } from "@/lib/store";
 import { cn } from "@/lib/cn";
@@ -180,12 +180,6 @@ function PhasePanel({ state }: { state: PublicState }) {
           </div>
         </Centered>
       );
-    case "fast_money_intro":
-      return <Centered>⚡ {state.teams.find((t) => t.id === state.winnerTeamId)?.name} is going for Fast Money!</Centered>;
-    case "fast_money":
-      return <FastMoneyPanel state={state} />;
-    case "fast_money_reveal":
-      return <Centered>📺 Watch the TV — Fast Money results!</Centered>;
     case "game_over":
       return <Centered>🏆 That&apos;s the game! Final scores on the board.</Centered>;
     default:
@@ -502,66 +496,6 @@ function StealRevealPanel({ state }: { state: PublicState }) {
         );
       })}
     </div>
-  );
-}
-
-// ------------------------------------------------------------ fast money
-
-function FastMoneyPanel({ state }: { state: PublicState }) {
-  const { serverOffsetMs, playerAction } = useFeud();
-  const fm = state.fastMoney!;
-  const amActive = fm.myAnswerState !== null;
-  if (fm.myAnswerState === "submitted") {
-    return <Centered>✅ Answer in — {fm.activePlayerName}, stay dramatic.</Centered>;
-  }
-  if (amActive) {
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between rounded-2xl border border-gold/40 bg-gold/10 p-3">
-          <span className="display text-lg text-gold">⚡ Q{fm.questionIndex + 1}</span>
-          {fm.timer && <Countdown endsAt={fm.timer.endsAt} offsetMs={serverOffsetMs} className="text-3xl" />}
-        </div>
-        {fm.prompt && <p className="display text-center text-xl text-white">{fm.prompt}</p>}
-        <FmForm onSubmit={(text) => playerAction({ type: "fm_answer", text })} />
-      </div>
-    );
-  }
-  return <Centered>⚡ {fm.activePlayerName} is answering. No pressure from the peanut gallery.</Centered>;
-}
-
-function FmForm({ onSubmit }: { onSubmit: (text: string) => void }) {
-  const [text, setText] = useState("");
-  const ref = useRef("");
-  useEffect(() => {
-    ref.current = text;
-  }, [text]);
-  // Auto-submit whatever's typed when we unmount (question moved on).
-  useEffect(() => {
-    return () => {
-      if (ref.current.trim()) onSubmit(ref.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return (
-    <form
-      className="flex gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (text.trim()) onSubmit(text);
-      }}
-    >
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        maxLength={60}
-        placeholder="Blurt it out…"
-        autoFocus
-        className="field min-w-0 flex-1 text-lg font-semibold"
-      />
-      <Button variant="gold" type="submit" className="px-6" disabled={!text.trim()}>
-        Answer
-      </Button>
-    </form>
   );
 }
 

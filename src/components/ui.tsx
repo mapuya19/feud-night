@@ -148,8 +148,5 @@ export const PHASE_LABEL: Record<string, string> = {
   steal: "Steal!",
   steal_reveal: "Steal Results",
   round_over: "Round Over",
-  fast_money_intro: "Fast Money",
-  fast_money: "Fast Money",
-  fast_money_reveal: "Fast Money",
   game_over: "Game Over",
 };

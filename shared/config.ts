@@ -9,13 +9,6 @@ export const STRIKES_TO_STEAL = 3;
 /** Huddle time for simultaneous steals, ms. */
 export const STEAL_DURATION_MS = 15_000;
 
-/** Fast Money: questions per player and per-question timers (P1, P2). */
-export const FM_QUESTIONS = 5;
-export const FM_DURATION_MS: [number, number] = [20_000, 25_000];
-
-/** Classic Fast Money win threshold. */
-export const FM_WIN_TARGET = 200;
-
 /** Team setup for a 4-team game (~7–8 players each at a 30-person party). */
 export const TEAM_DEFAULTS = [
   { id: "blue", name: "Team Blue", color: "#2563eb" },
@@ -26,6 +19,7 @@ export const TEAM_DEFAULTS = [
 
 /** Keeps a ~30-player party naturally balanced at 8 / 8 / 7 / 7. */
 export const MAX_TEAM_PLAYERS = 8;
+export const MAX_ROOM_PLAYERS = TEAM_DEFAULTS.length * MAX_TEAM_PLAYERS;
 
 export const MAX_NAME_LENGTH = 16;
 export const MAX_ANSWER_LENGTH = 60;
