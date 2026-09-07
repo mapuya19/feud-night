@@ -82,6 +82,10 @@ export const useFeud = create<FeudStore>((set, get) => ({
               set({ state: st, serverOffsetMs: st.serverTime - Date.now() });
               break;
             }
+            case "room_closed":
+              client?.disconnect();
+              set({ status: "error", lastError: msg.message, state: null });
+              break;
             case "error":
               set({ lastError: msg.message });
               break;

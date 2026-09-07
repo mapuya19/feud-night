@@ -32,6 +32,7 @@ export function createGame(code: string, hostToken: string, pool: SurveyQuestion
     code,
     hostToken,
     createdAt: Date.now(),
+    lastActivityAt: Date.now(),
     phase: "lobby",
     roundIndex: 0,
     questionPool: shuffle(pool),

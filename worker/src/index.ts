@@ -14,9 +14,12 @@ import {
 import { project } from "../../shared/projection";
 import type { ClientMessage, HostAction, PlayerAction } from "../../shared/protocol";
 import type { GameState, Role, SurveyQuestion } from "../../shared/types";
+import { STATE_TTL_DAYS } from "../../shared/config";
 
 const SURVEY: SurveyQuestion[] = questions as SurveyQuestion[];
 const ALLOWED_ROLES: Role[] = ["host", "board", "player"];
+const ROOM_TTL_MS = STATE_TTL_DAYS * 24 * 60 * 60 * 1000;
+const ROOM_CLOSED_CODE = 4004;
 
 export class FeudRoom extends DurableObject {
   private state: GameState | null = null;
@@ -26,26 +29,59 @@ export class FeudRoom extends DurableObject {
 
   private async ensureLoaded(): Promise<void> {
     if (this.loaded) return;
-    const stored = (await this.ctx.storage.get<GameState>("state")) ?? null;
-    this.state = stored;
+    this.state = (await this.ctx.storage.get<GameState>("state")) ?? null;
     this.loaded = true;
-    // If a timer was active when we were evicted, reschedule its alarm.
-    if (this.state) this.scheduleAlarmForTimer();
-  }
-
-  private async persist(): Promise<void> {
     if (!this.state) return;
-    await this.ctx.storage.put("state", this.state);
-    this.scheduleAlarmForTimer();
+
+    // Backfill rooms created before inactivity cleanup existed.
+    if (!this.state.lastActivityAt) {
+      this.state.lastActivityAt = this.state.createdAt;
+      await this.ctx.storage.put("state", this.state);
+    }
+    if (this.isExpired()) {
+      await this.closeRoom("Room expired after 24 hours of inactivity");
+      return;
+    }
+    this.scheduleAlarm();
   }
 
-  private scheduleAlarmForTimer(): void {
-    const deadline = this.state ? timerDeadline(this.state) : null;
-    if (deadline && deadline > Date.now()) {
-      this.ctx.storage.setAlarm(deadline).catch(() => {});
-    } else {
+  private isExpired(now = Date.now()): boolean {
+    return !!this.state && now >= this.state.lastActivityAt + ROOM_TTL_MS;
+  }
+
+  private async persist(touch = true): Promise<void> {
+    if (!this.state) return;
+    if (touch) this.state.lastActivityAt = Date.now();
+    await this.ctx.storage.put("state", this.state);
+    this.scheduleAlarm();
+  }
+
+  /** Schedule whichever happens first: an active game timer or room expiry. */
+  private scheduleAlarm(): void {
+    if (!this.state) {
       this.ctx.storage.deleteAlarm().catch(() => {});
+      return;
     }
+    const expiresAt = this.state.lastActivityAt + ROOM_TTL_MS;
+    const timer = timerDeadline(this.state);
+    const deadline = timer && timer > Date.now() ? Math.min(timer, expiresAt) : expiresAt;
+    this.ctx.storage.setAlarm(Math.max(deadline, Date.now())).catch(() => {});
+  }
+
+  /** Notify every connected screen, drop persistent state, and free the room code. */
+  private async closeRoom(message: string): Promise<void> {
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify({ type: "room_closed", message }));
+        ws.close(ROOM_CLOSED_CODE, message);
+      } catch {
+        /* socket may already be gone */
+      }
+    }
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    this.state = null;
+    this.loaded = true;
   }
 
   // ------------------------------------------------------------- HTTP entry
@@ -71,7 +107,7 @@ export class FeudRoom extends DurableObject {
       const upgrade = request.headers.get("Upgrade");
       if (upgrade !== "websocket") return new Response("expected websocket", { status: 426 });
       if (!this.state) return new Response("room not found", { status: 404 });
-      return this.handleWebSocket(url);
+      return await this.handleWebSocket(url);
     }
 
     return new Response("not found", { status: 404 });
@@ -79,7 +115,7 @@ export class FeudRoom extends DurableObject {
 
   // ------------------------------------------------------------- websockets
 
-  private handleWebSocket(url: URL): Response {
+  private async handleWebSocket(url: URL): Promise<Response> {
     const roleParam = url.searchParams.get("role") as Role | null;
     const role: Role = roleParam && ALLOWED_ROLES.includes(roleParam) ? roleParam : "player";
     const playerId = url.searchParams.get("playerId") ?? "";
@@ -98,6 +134,9 @@ export class FeudRoom extends DurableObject {
       welcome.playerId = playerId;
       setConnected(this.state!, playerId, true);
     }
+    // A reconnect/opened screen counts as room activity, so an active party
+    // does not expire simply because no one pressed a button recently.
+    await this.persist();
     server.send(JSON.stringify(welcome));
     // Everyone gets an immediate state push on connect — the host console and
     // TV board open before any game actions happen, so waiting for the next
@@ -161,6 +200,10 @@ export class FeudRoom extends DurableObject {
             ws.send(JSON.stringify({ type: "error", message: "Host only" }));
             return;
           }
+          if (msg.action.type === "close_room") {
+            await this.closeRoom("Room closed by the host");
+            return;
+          }
           const res = applyHostAction(this.state, msg.action as HostAction);
           if (!res.ok) ws.send(JSON.stringify({ type: "error", message: res.error ?? "Rejected" }));
           dirty = res.ok;
@@ -217,9 +260,16 @@ export class FeudRoom extends DurableObject {
   async alarm(): Promise<void> {
     await this.ensureLoaded();
     if (!this.state) return;
+    if (this.isExpired()) {
+      await this.closeRoom("Room expired after 24 hours of inactivity");
+      return;
+    }
     if (expireTimer(this.state)) {
-      await this.persist();
+      // Timer expiry advances the game but is not player activity.
+      await this.persist(false);
       this.broadcast();
+    } else {
+      this.scheduleAlarm();
     }
   }
 

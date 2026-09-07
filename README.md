@@ -69,9 +69,16 @@ socket (host sees everything; players/board see only what they should).
 Phones are dumb terminals — refresh, lock your phone, come back, and your
 session is restored from localStorage + a reconnect.
 
-Timers (steal huddles, Fast Money) run on DO alarms, and every countdown
-is computed client-side from a server-issued deadline + clock offset — so
-30 phones tick in lockstep with zero extra traffic.
+Steal huddle timers run on DO alarms, and every countdown is computed
+client-side from a server-issued deadline + clock offset — so 30 phones tick
+in lockstep with zero extra traffic.
+
+## Room cleanup
+
+A room is automatically deleted after **24 hours without a connection or a
+meaningful game action**. Once a game reaches its champion screen, the host
+can also use **Close room & clear data** to immediately disconnect every
+screen and permanently delete that room's state.
 
 ## Run it locally
 

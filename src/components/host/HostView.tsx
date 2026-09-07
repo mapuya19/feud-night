@@ -8,8 +8,14 @@ import { Button, Countdown, PHASE_LABEL, StatusDot } from "@/components/ui";
 import type { PublicState } from "@shared/projection";
 
 export function HostView({ code }: { code: string }) {
-  const { status, state } = useFeud();
-  if (!state) return <div className="p-10 text-white/50">Connecting to room {code}…</div>;
+  const { status, state, lastError } = useFeud();
+  if (!state) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center p-8 text-center text-white/50">
+        {status === "error" ? lastError ?? "This room is no longer available." : `Connecting to room ${code}…`}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[1440px] flex-col gap-5 p-4 pb-10 sm:p-6 xl:p-8">
@@ -109,6 +115,19 @@ function GameSnapshot({ state, code }: { state: PublicState; code: string }) {
       <p className="mt-4 rounded-xl border border-bubble/20 bg-bubble/[0.06] px-3 py-2 text-[11px] leading-relaxed text-paper/55">
         Private view — pending answers and steals appear here only. Cast <span className="font-semibold text-neon">/board</span>, never this page.
       </p>
+      {state.phase === "game_over" && (
+        <Button
+          variant="danger"
+          className="mt-3 w-full"
+          onClick={() => {
+            if (window.confirm("Close this room permanently? This deletes its game state and disconnects every screen.")) {
+              hostAction({ type: "close_room" });
+            }
+          }}
+        >
+          Close room & clear data
+        </Button>
+      )}
       {state.phase !== "game_over" && state.phase !== "lobby" && (
         <Button
           variant="danger"

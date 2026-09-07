@@ -30,6 +30,7 @@ export type HostAction =
   | { type: "fm_next_player" }
   | { type: "fm_reveal_step" }
   | { type: "end_game" }
+  | { type: "close_room" }
   | { type: "reset_game" };
 
 export type PlayerAction =
@@ -44,6 +45,7 @@ export type ServerMessage =
   | { type: "welcome"; gameCode: string; role: Role; playerId?: string }
   | { type: "state"; state: unknown; serverTime: number }
   | { type: "error"; message: string }
+  | { type: "room_closed"; message: string }
   | { type: "pong" };
 
 /** HTTP helpers (create room before opening a socket). */

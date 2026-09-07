@@ -16,6 +16,7 @@ export interface GameClientHandlers {
   onMessage: (msg: ServerMessage) => void;
   onOpen: () => void;
   onDisconnect: () => void;
+  onRoomClosed?: (message: string) => void;
 }
 
 export class GameClient {
@@ -26,6 +27,7 @@ export class GameClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = true;
   private attempts = 0;
+  private opened = false;
 
   connect(opts: ConnectOptions, handlers: GameClientHandlers): void {
     this.opts = opts;
@@ -37,6 +39,7 @@ export class GameClient {
   private open(): void {
     if (!this.opts || !this.handlers) return;
     this.cleanupSocket();
+    this.opened = false;
 
     const q = new URLSearchParams({ role: this.opts.role });
     if (this.opts.playerId) q.set("playerId", this.opts.playerId);
@@ -51,6 +54,7 @@ export class GameClient {
     }
 
     this.ws.onopen = () => {
+      this.opened = true;
       this.attempts = 0;
       this.startPing();
       this.handlers?.onOpen();
@@ -65,6 +69,10 @@ export class GameClient {
     };
     this.ws.onclose = () => {
       this.stopPing();
+      if (!this.opened && this.shouldReconnect) {
+        void this.handleInitialConnectionFailure();
+        return;
+      }
       this.handlers?.onDisconnect();
       if (this.shouldReconnect) this.scheduleReconnect();
     };
@@ -85,6 +93,19 @@ export class GameClient {
       this.reconnectTimer = null;
       this.open();
     }, delay);
+  }
+
+  private async handleInitialConnectionFailure(): Promise<void> {
+    if (!this.opts || !this.shouldReconnect) return;
+    const status = await roomStatus(this.opts.code);
+    if (!this.shouldReconnect) return;
+    if (status === "missing") {
+      this.shouldReconnect = false;
+      this.handlers?.onRoomClosed?.("This room has expired or was closed by its host.");
+      return;
+    }
+    this.handlers?.onDisconnect();
+    this.scheduleReconnect();
   }
 
   private startPing(): void {
@@ -149,10 +170,15 @@ export async function createRoom(): Promise<{ code: string; hostToken: string }>
 
 /** GET /room/:code → boolean. */
 export async function roomExists(code: string): Promise<boolean> {
+  return (await roomStatus(code)) === "exists";
+}
+
+async function roomStatus(code: string): Promise<"exists" | "missing" | "unreachable"> {
   try {
     const res = await fetch(`${HTTP_BASE}/room/${code.toUpperCase()}`);
-    return res.ok;
+    if (res.ok) return "exists";
+    return res.status === 404 ? "missing" : "unreachable";
   } catch {
-    return false;
+    return "unreachable";
   }
 }

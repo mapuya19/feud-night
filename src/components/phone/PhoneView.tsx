@@ -9,10 +9,10 @@ import type { PublicState } from "@shared/projection";
 import { recallName } from "@/lib/identity";
 
 export function PhoneView({ code }: { code: string }) {
-  const { status, playerId, playerName, state, join } = useFeud();
+  const { status, playerId, playerName, state, join, lastError } = useFeud();
 
   if (status === "error") {
-    return <Centered>⚠️ Can&apos;t reach the game server. Check your Wi-Fi.</Centered>;
+    return <Centered>⚠️ {lastError ?? "Can't reach the game server. Check your Wi-Fi."}</Centered>;
   }
   if (!state) return <Centered>Connecting to room {code}…</Centered>;
   if (!playerId) return <JoinScreen onJoin={join} defaultName={recallName()} />;

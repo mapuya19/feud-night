@@ -82,6 +82,8 @@ export interface GameState {
   code: string;
   hostToken: string;
   createdAt: number;
+  /** Updated on room creation, connections, and meaningful game actions; used for automatic cleanup. */
+  lastActivityAt: number;
   phase: Phase;
   roundIndex: number; // 0..ROUNDS.length-1
   questionPool: SurveyQuestion[]; // shuffled

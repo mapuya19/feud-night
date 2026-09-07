@@ -9,8 +9,8 @@ import type { PublicSlot, PublicState, PublicTeam } from "@shared/projection";
 import { FM_WIN_TARGET } from "@shared/config";
 
 export function BoardView() {
-  const { state } = useFeud();
-  if (!state) return <Splash text="Connecting…" />;
+  const { state, status, lastError } = useFeud();
+  if (!state) return <Splash text={status === "error" ? lastError ?? "This room is no longer available." : "Connecting…"} />;
   switch (state.phase) {
     case "lobby":
       return <LobbyBoard state={state} />;
