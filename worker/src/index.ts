@@ -97,9 +97,12 @@ export class FeudRoom extends DurableObject {
     if (role === "player" && playerId && this.state!.players[playerId]) {
       welcome.playerId = playerId;
       setConnected(this.state!, playerId, true);
-      this.broadcast();
     }
     server.send(JSON.stringify(welcome));
+    // Everyone gets an immediate state push on connect — the host console and
+    // TV board open before any game actions happen, so waiting for the next
+    // mutation would leave them on a connecting screen forever.
+    this.broadcast();
     return new Response(null, { status: 101, webSocket: client });
   }
 
