@@ -3,7 +3,7 @@ import type { Role } from "./types";
 /** Client → Worker (WS or HTTP). */
 export type ClientMessage =
   // WS lifecycle
-  | { type: "join"; name: string }
+  | { type: "join"; name: string; teamId: string; claimCaptain: boolean }
   | { type: "rejoin"; playerId: string }
   | { type: "host_auth"; token: string }
   | { type: "ping" }
@@ -21,6 +21,7 @@ export type HostAction =
   | { type: "next_round" }
   | { type: "resolve_steal"; marks: { teamId: string; slot: number | null }[] }
   | { type: "set_captain"; teamId: string; playerId: string }
+  | { type: "move_player"; playerId: string; teamId: string }
   | { type: "set_rep"; teamId: string; playerId: string }
   | { type: "set_team_name"; teamId: string; name: string }
   | { type: "start_fast_money"; playerIds: string[] }
@@ -34,6 +35,9 @@ export type HostAction =
   | { type: "reset_game" };
 
 export type PlayerAction =
+  | { type: "choose_team"; teamId: string }
+  | { type: "claim_captain" }
+  | { type: "release_captain" }
   | { type: "buzz" }
   | { type: "suggest"; text: string }
   | { type: "lock_answer"; text: string }

@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { Button, Countdown, PHASE_LABEL, StatusDot, TeamBadge } from "@/components/ui";
 import type { PublicState } from "@shared/projection";
 import { recallName } from "@/lib/identity";
+import { MAX_TEAM_PLAYERS } from "@shared/config";
 
 export function PhoneView({ code }: { code: string }) {
   const { status, playerId, playerName, state, join, lastError } = useFeud();
@@ -15,7 +16,7 @@ export function PhoneView({ code }: { code: string }) {
     return <Centered>⚠️ {lastError ?? "Can't reach the game server. Check your Wi-Fi."}</Centered>;
   }
   if (!state) return <Centered>Connecting to room {code}…</Centered>;
-  if (!playerId) return <JoinScreen onJoin={join} defaultName={recallName()} />;
+  if (!playerId) return <JoinScreen state={state} onJoin={join} defaultName={recallName()} />;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-10 pt-4">
@@ -41,22 +42,34 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 // ------------------------------------------------------------------- join
 
-function JoinScreen({ onJoin, defaultName }: { onJoin: (name: string) => void; defaultName: string }) {
+function JoinScreen({
+  state,
+  onJoin,
+  defaultName,
+}: {
+  state: PublicState;
+  onJoin: (name: string, teamId: string, claimCaptain: boolean) => void;
+  defaultName: string;
+}) {
   const [name, setName] = useState(defaultName);
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [claimCaptain, setClaimCaptain] = useState(false);
+  const selected = state.teams.find((team) => team.id === teamId);
+  const captainAvailable = !!selected && !selected.captainName;
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-7 p-6">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 p-6">
       <div className="text-center">
         <h1 className="display text-5xl">
           Feud{" "}
           <span className="bg-gradient-to-r from-gold via-gold-soft to-tangerine bg-clip-text text-transparent">Night</span>
         </h1>
-        <p className="mt-2 text-sm text-paper/50">You&apos;re in. Pick a name your team can chant.</p>
+        <p className="mt-2 text-sm text-paper/50">Pick your squad before the host locks the roster.</p>
       </div>
       <form
         className="flex w-full flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (name.trim()) onJoin(name);
+          if (name.trim() && teamId) onJoin(name, teamId, claimCaptain && captainAvailable);
         }}
       >
         <input
@@ -67,8 +80,46 @@ function JoinScreen({ onJoin, defaultName }: { onJoin: (name: string) => void; d
           autoFocus
           className="field display text-center text-xl"
         />
-        <Button type="submit" variant="gold" className="w-full py-4 text-base">
-          Let&apos;s go
+        <div className="grid grid-cols-2 gap-2">
+          {state.teams.map((team) => {
+            const full = team.playerCount >= MAX_TEAM_PLAYERS;
+            const active = team.id === teamId;
+            return (
+              <button
+                key={team.id}
+                type="button"
+                disabled={full}
+                onClick={() => {
+                  setTeamId(team.id);
+                  setClaimCaptain(false);
+                }}
+                className={cn(
+                  "rounded-2xl border p-3 text-left transition",
+                  active ? "bg-white/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.08]",
+                  full && "cursor-not-allowed opacity-35",
+                )}
+                style={active ? { borderColor: team.color, boxShadow: `0 0 20px ${team.color}33` } : undefined}
+              >
+                <span className="display block text-base" style={{ color: team.color }}>{team.name}</span>
+                <span className="mt-1 block text-xs text-white/45">{full ? "full" : `${team.playerCount}/${MAX_TEAM_PLAYERS} players`}</span>
+                <span className="mt-1 block truncate text-[10px] text-white/35">{team.captainName ? `👑 ${team.captainName}` : "Captain spot open"}</span>
+              </button>
+            );
+          })}
+        </div>
+        {selected && (
+          <label className={cn("flex items-center gap-2 rounded-xl border px-3 py-2 text-xs", captainAvailable ? "border-gold/20 bg-gold/[0.06] text-paper/65" : "border-white/10 text-white/35")}>
+            <input
+              type="checkbox"
+              checked={claimCaptain && captainAvailable}
+              disabled={!captainAvailable}
+              onChange={(e) => setClaimCaptain(e.target.checked)}
+            />
+            {captainAvailable ? "👑 I’ll be the provisional captain (I can step down before the host starts)." : `👑 ${selected.captainName} is the provisional captain.`}
+          </label>
+        )}
+        <Button type="submit" variant="gold" disabled={!teamId || !name.trim()} className="w-full py-4 text-base">
+          Join {selected?.name ?? "a team"}
         </Button>
       </form>
     </div>
@@ -143,30 +194,61 @@ function PhasePanel({ state }: { state: PublicState }) {
 }
 
 function LobbyPanel({ state }: { state: PublicState }) {
+  const { playerAction } = useFeud();
   const myTeam = useTeam();
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
-      <div className="display text-lg text-white/70">You&apos;re on</div>
-      {myTeam ? (
+      <div>
+        <div className="display text-lg text-white/70">Roster is open</div>
+        <p className="mt-1 text-xs text-white/45">Pick a squad or claim captain before the host locks teams.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {state.teams.map((team) => {
+          const active = team.id === state.myTeamId;
+          const full = team.playerCount >= MAX_TEAM_PLAYERS;
+          return (
+            <button
+              key={team.id}
+              disabled={active || full}
+              onClick={() => playerAction({ type: "choose_team", teamId: team.id })}
+              className={cn(
+                "rounded-xl border p-2.5 text-left transition",
+                active ? "bg-white/[0.1]" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.08]",
+                (active || full) && "cursor-default",
+                full && !active && "opacity-35",
+              )}
+              style={active ? { borderColor: team.color } : undefined}
+            >
+              <span className="display block text-sm" style={{ color: team.color }}>{team.name}</span>
+              <span className="mt-1 block text-[10px] text-white/45">{active ? "your team" : full ? "full" : `${team.playerCount}/${MAX_TEAM_PLAYERS} players`}</span>
+            </button>
+          );
+        })}
+      </div>
+      {myTeam && (
         <>
-          <div className="display text-3xl" style={{ color: myTeam.color }}>
-            {myTeam.name}
-          </div>
-          <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-white/50">
+          <div className="grid grid-cols-2 gap-2 text-xs text-white/50">
             <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
               <span className="label block text-[9px]">👑 Captain</span>
-              <span className="mt-0.5 block truncate text-white/80">{myTeam.captainName ?? "—"}</span>
+              <span className="mt-0.5 block truncate text-white/80">{myTeam.captainName ?? "Open — volunteer?"}</span>
             </div>
             <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
               <span className="label block text-[9px]">🔔 Face-off rep</span>
-              <span className="mt-0.5 block truncate text-white/80">{myTeam.repName ?? "Set next round"}</span>
+              <span className="mt-0.5 block truncate text-white/80">Set when the game starts</span>
             </div>
           </div>
+          {state.myIsCaptain ? (
+            <Button variant="ghost" className="w-full text-sm" onClick={() => playerAction({ type: "release_captain" })}>
+              Step down as captain
+            </Button>
+          ) : !myTeam.captainName ? (
+            <Button variant="gold" className="w-full text-sm" onClick={() => playerAction({ type: "claim_captain" })}>
+              👑 Claim captain
+            </Button>
+          ) : null}
         </>
-      ) : (
-        <div className="text-sm text-white/50">Assigning…</div>
       )}
-      <div className="display mt-2 animate-pulse text-sm text-gold">waiting for the host to start…</div>
+      <div className="display mt-1 animate-pulse text-sm text-gold">waiting for the host to lock teams…</div>
     </div>
   );
 }
@@ -174,9 +256,9 @@ function LobbyPanel({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- faceoff
 
 function FaceoffPanel({ state }: { state: PublicState }) {
-  const { playerAction, playerName } = useFeud();
+  const { playerAction } = useFeud();
   const myTeam = useTeam();
-  const amRep = !!myTeam?.repName && myTeam.repName === playerName;
+  const amRep = state.myIsRep;
   if (amRep) {
     return (
       <div className="flex flex-col items-center gap-3">
@@ -206,10 +288,10 @@ function FaceoffPanel({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- playing
 
 function PlayingPanel({ state }: { state: PublicState }) {
-  const { playerAction, playerName } = useFeud();
+  const { playerAction } = useFeud();
   const myTeam = useTeam();
   const isMyTeam = !!myTeam?.isControlling;
-  const isCaptain = myTeam?.captainName === playerName;
+  const isCaptain = state.myIsCaptain;
 
   if (!isMyTeam) {
     return (
@@ -328,11 +410,11 @@ function CaptainLock() {
 // ------------------------------------------------------------------ steal
 
 function StealPanel({ state }: { state: PublicState }) {
-  const { serverOffsetMs, playerName, playerAction } = useFeud();
+  const { serverOffsetMs, playerAction } = useFeud();
   const myTeam = useTeam();
   const steal = state.steal;
   const isStealingTeam = !!myTeam && !myTeam.isControlling;
-  const isCaptain = myTeam?.captainName === playerName;
+  const isCaptain = state.myIsCaptain;
   const submitted = !!steal && !!myTeam && steal.submittedTeamIds.includes(myTeam.id);
 
   if (!isStealingTeam) {
@@ -426,9 +508,9 @@ function StealRevealPanel({ state }: { state: PublicState }) {
 // ------------------------------------------------------------ fast money
 
 function FastMoneyPanel({ state }: { state: PublicState }) {
-  const { serverOffsetMs, playerName, playerAction } = useFeud();
+  const { serverOffsetMs, playerAction } = useFeud();
   const fm = state.fastMoney!;
-  const amActive = fm.activePlayerName === playerName && fm.myAnswerState !== null;
+  const amActive = fm.myAnswerState !== null;
   if (fm.myAnswerState === "submitted") {
     return <Centered>✅ Answer in — {fm.activePlayerName}, stay dramatic.</Centered>;
   }

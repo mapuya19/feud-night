@@ -7,6 +7,7 @@ import {
   TEAM_DEFAULTS,
   MAX_ANSWER_LENGTH,
   MAX_NAME_LENGTH,
+  MAX_TEAM_PLAYERS,
 } from "./config";
 import type { FmAnswer, GameState, SurveyQuestion, Team } from "./types";
 import type { HostAction, PlayerAction } from "./protocol";
@@ -56,20 +57,43 @@ export function createGame(code: string, hostToken: string, pool: SurveyQuestion
   };
 }
 
-/** Assign to the team with the fewest players; ties keep declaration order. */
-export function joinPlayer(state: GameState, playerId: string, name: string): EngineResult {
+/** Players choose their own team in the open lobby; the Worker enforces capacity. */
+export function joinPlayer(
+  state: GameState,
+  playerId: string,
+  name: string,
+  teamId: string,
+  claimCaptain: boolean,
+): EngineResult {
+  if (state.phase !== "lobby") return fail("Teams are locked — the game has started");
   if (state.players[playerId]) return ok; // idempotent
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
   if (!trimmed) return fail("Name required");
   if (Object.keys(state.players).length >= 80) return fail("Room is full");
-  let team: Team | null = null;
-  for (const t of Object.values(state.teams)) {
-    if (!team || t.players.length < team.players.length) team = t;
-  }
-  if (!team) return fail("No teams configured");
-  state.players[playerId] = { id: playerId, name: trimmed, teamId: team.id, connected: true };
+  const team = state.teams[teamId];
+  if (!team) return fail("Choose a valid team");
+  if (team.players.length >= MAX_TEAM_PLAYERS) return fail("That team is full — choose another");
+  if (claimCaptain && team.captainId) return fail("That team already has a captain");
+
+  state.players[playerId] = { id: playerId, name: trimmed, teamId, connected: true };
   team.players.push(playerId);
-  if (!team.captainId) team.captainId = playerId; // first to join captains by default
+  if (claimCaptain) team.captainId = playerId;
+  return ok;
+}
+
+function movePlayerToTeam(state: GameState, playerId: string, teamId: string): EngineResult {
+  if (state.phase !== "lobby") return fail("Teams are locked — the game has started");
+  const player = state.players[playerId];
+  const destination = state.teams[teamId];
+  if (!player || !destination) return fail("Unknown player or team");
+  if (player.teamId === teamId) return ok;
+  if (destination.players.length >= MAX_TEAM_PLAYERS) return fail("That team is full — choose another");
+
+  const source = state.teams[player.teamId];
+  source.players = source.players.filter((id) => id !== playerId);
+  if (source.captainId === playerId) source.captainId = null;
+  player.teamId = teamId;
+  destination.players.push(playerId);
   return ok;
 }
 
@@ -152,8 +176,9 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
   switch (action.type) {
     case "start_game": {
       if (state.phase !== "lobby") return fail("Game already started");
-      const totalPlayers = Object.keys(state.players).length;
-      if (totalPlayers < 3) return fail("Need at least 3 players to start");
+      const teams = Object.values(state.teams);
+      if (teams.some((team) => team.players.length === 0)) return fail("Every team needs at least one player");
+      if (teams.some((team) => !team.captainId)) return fail("Every team needs a captain");
       return startRound(state, 0);
     }
 
@@ -257,11 +282,16 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     }
 
     case "set_captain": {
+      if (state.phase !== "lobby") return fail("Captains lock when the game starts");
       const team = state.teams[action.teamId];
       if (!team || !state.players[action.playerId]) return fail("Unknown team/player");
       if (state.players[action.playerId].teamId !== action.teamId) return fail("Player not on that team");
       team.captainId = action.playerId;
       return ok;
+    }
+
+    case "move_player": {
+      return movePlayerToTeam(state, action.playerId, action.teamId);
     }
 
     case "set_rep": {
@@ -421,6 +451,23 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
   const team = state.teams[player.teamId];
 
   switch (action.type) {
+    case "choose_team":
+      return movePlayerToTeam(state, playerId, action.teamId);
+
+    case "claim_captain": {
+      if (state.phase !== "lobby") return fail("Captains are locked for this game");
+      if (team.captainId && team.captainId !== playerId) return fail("Your team already has a captain");
+      team.captainId = playerId;
+      return ok;
+    }
+
+    case "release_captain": {
+      if (state.phase !== "lobby") return fail("Captains are locked for this game");
+      if (team.captainId !== playerId) return fail("You are not this team's captain");
+      team.captainId = null;
+      return ok;
+    }
+
     case "buzz": {
       if (state.phase !== "faceoff") return fail("No face-off in progress");
       if (state.reps[team.id] !== playerId) return fail("You're not the rep");

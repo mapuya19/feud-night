@@ -6,8 +6,8 @@ export type Phase =
   | "lobby" // players joining, teams forming
   | "faceoff" // reps up, waiting for first buzz
   | "playing" // controlling team answers the board
-  | "steal" // 3 strikes; two teams huddle + secretly submit
-  | "steal_reveal" // both steal answers shown, host judges
+  | "steal" // 3 strikes; every opposing team huddles + secretly submits
+  | "steal_reveal" // all steal answers shown; host judges
   | "round_over" // bank awarded; host advances
   | "fast_money_intro" // winning team announced, pick 2 players
   | "fast_money" // P1/P2 answering

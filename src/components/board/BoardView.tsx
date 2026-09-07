@@ -45,7 +45,7 @@ function Splash({ text }: { text: string }) {
 
 function Scoreboard({ state }: { state: PublicState }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       {state.teams.map((t: PublicTeam) => (
         <div
           key={t.id}
@@ -98,7 +98,7 @@ function LobbyBoard({ state }: { state: PublicState }) {
         <h1 className="display text-center text-7xl text-gold drop-shadow-[0_4px_24px_rgba(245,197,24,0.3)]">
           Feud Night
         </h1>
-        <p className="display mt-2 text-center text-lg text-white/50">3 teams · one apartment · total chaos</p>
+        <p className="display mt-2 text-center text-lg text-white/50">4 teams · one apartment · total chaos</p>
       </div>
       <div className="flex items-center gap-10 rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-10">
         <div className="flex flex-col items-center gap-3">
@@ -111,7 +111,7 @@ function LobbyBoard({ state }: { state: PublicState }) {
           <span className="mt-3 text-sm text-white/50">{state.teams.reduce((n, t) => n + t.playerCount, 0)} players in</span>
         </div>
       </div>
-      <div className="grid w-full max-w-3xl grid-cols-3 gap-3">
+      <div className="grid w-full max-w-4xl grid-cols-2 gap-3 xl:grid-cols-4">
         {state.teams.map((t) => (
           <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4 text-center">
             <div className="display text-xl" style={{ color: t.color }}>

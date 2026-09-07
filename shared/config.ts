@@ -16,12 +16,16 @@ export const FM_DURATION_MS: [number, number] = [20_000, 25_000];
 /** Classic Fast Money win threshold. */
 export const FM_WIN_TARGET = 200;
 
-/** Team setup for a 3-team game (~10 players each at a 30-person party). */
+/** Team setup for a 4-team game (~7–8 players each at a 30-person party). */
 export const TEAM_DEFAULTS = [
   { id: "blue", name: "Team Blue", color: "#2563eb" },
   { id: "red", name: "Team Red", color: "#dc2626" },
   { id: "gold", name: "Team Gold", color: "#d97706" },
+  { id: "violet", name: "Team Violet", color: "#8b5cf6" },
 ] as const;
+
+/** Keeps a ~30-player party naturally balanced at 8 / 8 / 7 / 7. */
+export const MAX_TEAM_PLAYERS = 8;
 
 export const MAX_NAME_LENGTH = 16;
 export const MAX_ANSWER_LENGTH = 60;

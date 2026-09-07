@@ -73,8 +73,10 @@ export interface PublicState {
   roundIndex: number;
   totalRounds: number;
   multiplier: number;
-  /** Set for player viewers — their own team. */
+  /** Set for player viewers — their own team and lobby/game role permissions. */
   myTeamId: string | null;
+  myIsCaptain: boolean;
+  myIsRep: boolean;
   teams: PublicTeam[];
   players:
     | { id: string; name: string; teamId: string; connected: boolean; isCaptain: boolean; isRep: boolean }[]
@@ -93,6 +95,8 @@ export interface PublicState {
 export function project(state: GameState, viewer: Viewer): PublicState {
   const now = Date.now();
   const myTeamId = viewer.playerId ? state.players[viewer.playerId]?.teamId : null;
+  const myIsCaptain = !!myTeamId && state.teams[myTeamId]?.captainId === viewer.playerId;
+  const myIsRep = !!myTeamId && (state.reps[myTeamId] ?? null) === viewer.playerId;
   const isControllingTeam = myTeamId !== null && myTeamId === state.controllingTeamId;
 
   const teams: PublicTeam[] = Object.values(state.teams).map((t) => {
@@ -212,6 +216,8 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     totalRounds: ROUND_MULTIPLIERS.length,
     multiplier: ROUND_MULTIPLIERS[Math.min(state.roundIndex, ROUND_MULTIPLIERS.length - 1)],
     myTeamId: myTeamId,
+    myIsCaptain,
+    myIsRep,
     teams,
     players,
     question,

@@ -30,7 +30,7 @@ export default function Home() {
     <main className="mx-auto flex min-h-dvh w-[min(96vw,64rem)] flex-col gap-12 px-4 py-12 md:py-16">
       <header className="flex flex-col items-start gap-5">
         <span className="chip">
-          <span aria-hidden>✦</span> Free · No downloads · 3 teams · ~30 players
+          <span aria-hidden>✦</span> Free · No downloads · 4 teams · ~30 players
         </span>
         <h1 className="display text-6xl leading-[0.9] tracking-tight sm:text-8xl">
           Feud
@@ -55,7 +55,7 @@ export default function Home() {
             },
             {
               tag: "Survey says",
-              body: "Your team shouts answers from their phones; the captain locks one in. The face-off rep and captain can be different people. Three strikes gives the other teams a simultaneous steal — if both are right, the higher-ranked survey answer wins.",
+              body: "Your team shouts answers from their phones; the captain locks one in. The face-off rep and captain can be different people. Three strikes gives the other teams a simultaneous steal — if multiple steals are right, the higher-ranked survey answer wins.",
               accent: "text-neon",
             },
             {
@@ -134,11 +134,12 @@ export default function Home() {
           <p>
             <span className="label mb-2 block text-gold">Setup</span>
             Host creates a room on the laptop. The TV shows a QR code — guests
-            scan, type a name, and get dealt onto one of three teams.
+            scan, type a name, choose one of four teams, and optionally claim
+            its provisional captain spot before the host locks the roster.
           </p>
           <p>
             <span className="label mb-2 block text-neon">Space</span>
-            Only three reps ever need to stand up. Everyone else plays from
+            Only four reps ever need to stand up. Everyone else plays from
             their team&apos;s corner of the apartment — suggestions, steals and
             fast money all happen on phones.
           </p>

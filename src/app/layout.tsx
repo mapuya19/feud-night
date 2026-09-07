@@ -15,9 +15,9 @@ const inter = Inter({
   display: "swap",
 });
 
-const title = "Feud Night — 3-team apartment Family Feud";
+const title = "Feud Night — 4-team apartment Family Feud";
 const description =
-  "A Family Feud-style party game for your apartment: 3 teams, phones as controllers, TV as the board. Survey says.";
+  "A Family Feud-style party game for your apartment: 4 teams, phones as controllers, TV as the board. Survey says.";
 
 export const metadata: Metadata = {
   title: { default: title, template: "%s · Feud Night" },

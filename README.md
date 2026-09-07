@@ -1,14 +1,16 @@
 # Feud Night 🎉
 
-A **3-team Family Feud-style party game** built for a ~30-person apartment
+A **4-team Family Feud-style party game** built for a ~30-person apartment
 birthday. Phones are controllers, a TV/projector is the board, and a host
 laptop runs the show. Real-time over WebSockets, free-tier hosted.
 
 ## How it plays
 
 **Setup.** Host creates a room on their laptop. The TV shows a QR code.
-Guests scan → type a name → auto-join one of **3 teams** (~10 each).
-Reps rotate every round so everyone gets a face-off moment.
+Guests scan → type a name → choose one of **4 teams** (up to 8 players each)
+and may volunteer as that team’s provisional captain. The host can move players
+or correct captains, then locks the roster before play begins. Reps rotate every
+round so everyone gets a face-off moment.
 
 **Roles.** Each team has two separate roles: the **face-off rep** is the only
 player who can buzz that round (it rotates automatically; host can override
@@ -22,10 +24,10 @@ steal. The host can change either role from the private console.
 2. **Playing** — the controlling team's players submit answer suggestions
    from their phones; the **captain** locks the official answer. The host
    judges it against the board: reveal or strike.
-3. **Steal** — after 3 strikes, both opposing teams get a 15-second huddle.
+3. **Steal** — after 3 strikes, all opposing teams get a 15-second huddle.
    Each **captain secretly submits one steal answer** from their phone.
-   Both reveal simultaneously on the TV; the host judges each. **If both steal
-   answers are correct, the higher-ranked (higher-point) survey answer wins
+   Answers reveal simultaneously on the TV; the host judges each. **If multiple
+   steal answers are correct, the higher-ranked (higher-point) survey answer wins
    the bank.** Matched steals reveal on the board and the winner banks
    everything.
 4. **Final Board** — after four rounds, every team gets one last full

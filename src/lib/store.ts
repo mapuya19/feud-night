@@ -26,7 +26,7 @@ interface FeudStore {
   state: PublicState | null;
   serverOffsetMs: number;
   connect: (args: ConnectArgs) => void;
-  join: (name: string) => void;
+  join: (name: string, teamId: string, claimCaptain: boolean) => void;
   hostAction: (action: HostAction) => void;
   playerAction: (action: PlayerAction) => void;
   setError: (msg: string | null) => void;
@@ -98,12 +98,12 @@ export const useFeud = create<FeudStore>((set, get) => ({
     set({ client });
   },
 
-  join: (name: string) => {
+  join: (name: string, teamId: string, claimCaptain: boolean) => {
     const trimmed = name.trim();
-    if (!trimmed || !client) return;
+    if (!trimmed || !teamId || !client) return;
     rememberName(trimmed);
     set({ playerName: trimmed });
-    client.send({ type: "join", name: trimmed });
+    client.send({ type: "join", name: trimmed, teamId, claimCaptain });
   },
 
   hostAction: (action) => {

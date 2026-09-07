@@ -164,7 +164,7 @@ export class FeudRoom extends DurableObject {
       switch (msg.type) {
         case "join": {
           const id = crypto.randomUUID();
-          const res = joinPlayer(this.state, id, msg.name ?? "");
+          const res = joinPlayer(this.state, id, msg.name ?? "", msg.teamId, msg.claimCaptain);
           if (!res.ok) {
             ws.send(JSON.stringify({ type: "error", message: res.error ?? "Join failed" }));
             return;

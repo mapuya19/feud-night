@@ -150,10 +150,11 @@ function GameSnapshot({ state, code }: { state: PublicState; code: string }) {
 function LobbyHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   const total = state.teams.reduce((n, t) => n + t.playerCount, 0);
+  const ready = state.teams.every((t) => t.playerCount > 0 && t.captainName);
   return (
     <section className="host-panel flex flex-col gap-4">
       <p className="text-sm text-white/50">
-        {total} players in. Teams auto-balance as people join — you can rename teams and reassign captains below.
+        {total} players in. Players choose a squad and may volunteer as captain; move people or correct captains here before locking the roster.
       </p>
       {state.teams.map((t) => (
         <TeamAdminRow key={t.id} state={state} teamId={t.id} />
@@ -161,10 +162,10 @@ function LobbyHost({ state }: { state: PublicState }) {
       <Button
         variant="gold"
         className="mt-2 py-4 text-lg"
-        disabled={total < 3}
+        disabled={!ready}
         onClick={() => hostAction({ type: "start_game" })}
       >
-        {total < 3 ? `Need 3+ players (${total} in)` : "▶ Start the Feud"}
+        {!ready ? "Each team needs 1+ player and a captain" : "🔒 Lock teams & start the Feud"}
       </Button>
     </section>
   );
@@ -193,25 +194,36 @@ function TeamAdminRow({ state, teamId }: { state: PublicState; teamId: string })
         <span><span className="text-gold">👑 Captain:</span> {team.captainName ?? "choose below"}</span>
         <span><span className="text-neon">🔔 Face-off rep:</span> {team.repName ?? "rotates when the game starts"}</span>
       </div>
-      <p className="mt-2 label text-[9px]">Tap a player to make them captain</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <p className="mt-2 label text-[9px]">Tap a player to set captain · use the menu to move them before lock</p>
+      <div className="mt-2 flex flex-col gap-1.5">
         {members.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => hostAction({ type: "set_captain", teamId, playerId: m.id })}
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs transition-colors",
-              m.isCaptain
-                ? "bg-gold/20 text-gold"
-                : m.connected
-                  ? "bg-white/[0.06] text-white/70 hover:bg-white/10"
-                  : "bg-white/[0.03] text-white/25 line-through",
-            )}
-            title={m.connected ? "Tap to make captain" : "disconnected"}
-          >
-            {m.isCaptain ? "👑 " : ""}
-            {m.name}
-          </button>
+          <div key={m.id} className="flex items-center gap-2">
+            <button
+              onClick={() => hostAction({ type: "set_captain", teamId, playerId: m.id })}
+              className={cn(
+                "min-w-0 flex-1 rounded-full px-2.5 py-1 text-left text-xs transition-colors",
+                m.isCaptain
+                  ? "bg-gold/20 text-gold"
+                  : m.connected
+                    ? "bg-white/[0.06] text-white/70 hover:bg-white/10"
+                    : "bg-white/[0.03] text-white/25 line-through",
+              )}
+              title={m.connected ? "Tap to make captain" : "disconnected"}
+            >
+              {m.isCaptain ? "👑 " : ""}
+              {m.name}
+            </button>
+            <select
+              aria-label={`Move ${m.name} to another team`}
+              value={m.teamId}
+              onChange={(e) => hostAction({ type: "move_player", playerId: m.id, teamId: e.target.value })}
+              className="rounded-lg border border-white/10 bg-ink-soft px-2 py-1 text-[10px] text-white/65 outline-none"
+            >
+              {state.teams.map((option) => (
+                <option key={option.id} value={option.id}>{option.name.replace("Team ", "")}</option>
+              ))}
+            </select>
+          </div>
         ))}
       </div>
     </div>
@@ -226,7 +238,7 @@ function FaceoffHost({ state }: { state: PublicState }) {
     <section className="host-panel flex flex-col gap-4">
       <h2 className="display text-2xl text-white sm:text-3xl">🔔 Face-off — waiting for a buzz</h2>
       <p className="max-w-4xl text-lg leading-snug text-white/65">{state.question?.prompt}</p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {state.teams.map((t) => (
           <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-center backdrop-blur-xl">
             <div className="display text-base" style={{ color: t.color }}>
@@ -592,7 +604,7 @@ function Roster({ state, defaultOpen = false }: { state: PublicState; defaultOpe
           hide
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-1">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-1">
         {state.teams.map((t) => (
           <div key={t.id} className="flex flex-col gap-1">
             <span className="display text-xs" style={{ color: t.color }}>
