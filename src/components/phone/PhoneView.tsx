@@ -26,7 +26,7 @@ export function PhoneView({ code }: { code: string }) {
         </motion.div>
       </AnimatePresence>
       {state.question?.prompt && state.phase !== "lobby" && (
-        <p className="display rounded-xl border border-line bg-card p-4 text-center text-lg leading-snug text-white/80">
+        <p className="display rounded-xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4 text-center text-lg leading-snug text-white/80">
           {state.question.prompt}
         </p>
       )}
@@ -44,9 +44,14 @@ function Centered({ children }: { children: React.ReactNode }) {
 function JoinScreen({ onJoin, defaultName }: { onJoin: (name: string) => void; defaultName: string }) {
   const [name, setName] = useState(defaultName);
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-6 p-6">
-      <h1 className="display text-4xl text-gold">Feud Night</h1>
-      <p className="text-center text-white/50">You&apos;re in. Pick a name your team can chant.</p>
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-7 p-6">
+      <div className="text-center">
+        <h1 className="display text-5xl">
+          Feud{" "}
+          <span className="bg-gradient-to-r from-gold via-gold-soft to-tangerine bg-clip-text text-transparent">Night</span>
+        </h1>
+        <p className="mt-2 text-sm text-paper/50">You&apos;re in. Pick a name your team can chant.</p>
+      </div>
       <form
         className="flex w-full flex-col gap-3"
         onSubmit={(e) => {
@@ -60,9 +65,9 @@ function JoinScreen({ onJoin, defaultName }: { onJoin: (name: string) => void; d
           maxLength={16}
           placeholder="Your name"
           autoFocus
-          className="display w-full rounded-xl border border-line bg-card px-4 py-4 text-center text-xl text-white placeholder:font-normal placeholder:not-italic placeholder:text-white/25 focus:border-gold focus:outline-none"
+          className="field display text-center text-xl"
         />
-        <Button type="submit" variant="gold" className="py-4 text-lg" disabled={!name.trim()}>
+        <Button type="submit" variant="gold" className="w-full py-4 text-base">
           Let&apos;s go
         </Button>
       </form>
@@ -76,7 +81,7 @@ function PhoneHeader({ state, name }: { state: PublicState; name: string }) {
   const { status } = useFeud();
   const team = state.teams.find((t) => t.id === state.myTeamId);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl px-4 py-3">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="truncate text-sm font-semibold text-white/80">{name}</span>
         {team && <TeamBadge team={team} className="w-fit" />}
@@ -140,7 +145,7 @@ function PhasePanel({ state }: { state: PublicState }) {
 function LobbyPanel({ state }: { state: PublicState }) {
   const myTeam = useTeam();
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <div className="display text-lg text-white/70">You&apos;re on</div>
       {myTeam ? (
         <>
@@ -225,7 +230,7 @@ function PlayingPanel({ state }: { state: PublicState }) {
           <span className="text-xs uppercase tracking-widest text-white/40">team suggestions</span>
           <div className="flex flex-wrap gap-2">
             {state.suggestions.map((s, i) => (
-              <span key={i} className="rounded-full border border-line bg-card-2 px-3 py-1.5 text-sm text-white/80">
+              <span key={i} className="rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-sm text-white/80">
                 “{s.text}” <span className="text-white/35">— {s.byName}</span>
               </span>
             ))}
@@ -259,7 +264,7 @@ function SuggestBox() {
         onChange={(e) => setText(e.target.value)}
         maxLength={60}
         placeholder="Shout an answer here…"
-        className="min-w-0 flex-1 rounded-xl border border-line bg-card px-4 py-3 text-white placeholder:text-white/25 focus:border-gold focus:outline-none"
+        className="field min-w-0 flex-1"
       />
       <Button variant="primary" type="submit" disabled={!text.trim()}>
         Send
@@ -282,7 +287,7 @@ function CaptainLock() {
             <button
               key={i}
               onClick={() => setText(s.text)}
-              className="display rounded-full border border-line bg-card px-3 py-1.5 text-xs text-white/80 active:scale-95"
+              className="display rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-xs text-white/80 active:scale-95"
             >
               {s.text}
             </button>
@@ -302,7 +307,7 @@ function CaptainLock() {
           onChange={(e) => setText(e.target.value)}
           maxLength={60}
           placeholder="Final answer…"
-          className="min-w-0 flex-1 rounded-xl border border-line bg-card px-4 py-3 font-semibold text-white placeholder:font-normal placeholder:text-white/25 focus:border-neon focus:outline-none"
+          className="field min-w-0 flex-1 font-semibold focus:border-neon/70 focus:ring-neon/25"
         />
         <Button variant="gold" type="submit" disabled={!text.trim() && !pending}>
           Lock it
@@ -376,7 +381,7 @@ function StealForm({ onSubmit }: { onSubmit: (text: string) => void }) {
         maxLength={60}
         placeholder="Secret steal answer…"
         autoFocus
-        className="min-w-0 flex-1 rounded-xl border border-gold/50 bg-card px-4 py-4 text-lg font-semibold text-white placeholder:font-normal placeholder:text-white/25 focus:outline-none"
+        className="field min-w-0 flex-1 border-gold/50 text-lg font-semibold focus:border-gold/70"
       />
       <Button variant="gold" type="submit" className="px-6" disabled={!text.trim()}>
         Steal!
@@ -456,7 +461,7 @@ function FmForm({ onSubmit }: { onSubmit: (text: string) => void }) {
         maxLength={60}
         placeholder="Blurt it out…"
         autoFocus
-        className="min-w-0 flex-1 rounded-xl border border-line bg-card px-4 py-4 text-lg font-semibold text-white placeholder:font-normal placeholder:text-white/25 focus:border-gold focus:outline-none"
+        className="field min-w-0 flex-1 text-lg font-semibold"
       />
       <Button variant="gold" type="submit" className="px-6" disabled={!text.trim()}>
         Answer
@@ -482,7 +487,7 @@ function MiniBoard({ state }: { state: PublicState }) {
             key={i}
             className={cn(
               "flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs",
-              s.revealed ? "bg-blue-600/80 text-white" : "bg-card-2 text-white/25",
+              s.revealed ? "bg-blue-600/80 text-white" : "bg-white/[0.06] text-white/25",
             )}
           >
             <span className="display truncate">{s.revealed ? s.text : i + 1}</span>

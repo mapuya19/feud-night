@@ -22,24 +22,14 @@ export function Button({
   type?: "button" | "submit";
 }) {
   const variants = {
-    default: "bg-card-2 hover:bg-line text-white border border-line",
-    primary: "bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/40",
-    danger: "bg-red-600 hover:bg-red-500 text-white border border-red-400/40",
-    gold: "bg-gold hover:brightness-110 text-black border border-yellow-300/60",
-    ghost: "bg-transparent hover:bg-card-2 text-white/70 border border-line",
+    default: "btn-ghost",
+    primary: "btn-blue",
+    danger: "btn-red",
+    gold: "btn-gold",
+    ghost: "btn-ghost",
   };
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "display rounded-xl px-4 py-2.5 text-sm transition-all active:scale-[0.97]",
-        "disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
-        variants[variant],
-        className,
-      )}
-    >
+    <button type={type} onClick={onClick} disabled={disabled} className={cn(variants[variant], className)}>
       {children}
     </button>
   );
@@ -50,7 +40,7 @@ export function Button({
 export function TeamBadge({ team, className }: { team: PublicTeam; className?: string }) {
   return (
     <span
-      className={cn("display inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs", className)}
+      className={cn("display inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold", className)}
       style={{ backgroundColor: `${team.color}26`, color: team.color, border: `1px solid ${team.color}80` }}
     >
       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: team.color }} />
@@ -100,7 +90,7 @@ export function Countdown({
     }
   }, [left, onExpire]);
   return (
-    <span className={cn("display tabular-nums", seconds <= 5 ? "text-red-400" : "", className)}>
+    <span className={cn("display text-3xl tabular-nums", seconds <= 5 ? "text-bubble" : "text-paper/90", className)}>
       {seconds}s
     </span>
   );
@@ -128,9 +118,9 @@ export function CountdownBar({
     return () => clearInterval(t);
   }, [endsAt, durationMs, offsetMs]);
   return (
-    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-line", className)}>
+    <div className={cn("h-1.5 w-full overflow-hidden rounded-full bg-white/10", className)}>
       <div
-        className={cn("h-full rounded-full transition-none", frac < 0.25 ? "bg-red-500" : "bg-gold")}
+        className={cn("h-full rounded-full transition-none", frac < 0.25 ? "bg-bubble" : "bg-gold")}
         style={{ width: `${frac * 100}%` }}
       />
     </div>
@@ -145,7 +135,7 @@ export function ErrorToast({ message, onDone }: { message: string; onDone: () =>
     return () => clearTimeout(t);
   }, [message, onDone]);
   return (
-    <div className="animate-pop-in fixed inset-x-4 top-4 z-50 rounded-xl border border-red-500/50 bg-red-950/90 px-4 py-3 text-sm text-red-200 shadow-lg">
+    <div className="animate-pop-in fixed inset-x-4 top-4 z-50 rounded-2xl border border-bubble/50 bg-bubble/15 px-4 py-3 text-sm text-bubble backdrop-blur-xl">
       {message}
     </div>
   );

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRoom } from "@/lib/ws-client";
 import { saveHost } from "@/lib/identity";
-import { Button } from "@/components/ui";
 
 export default function Home() {
   const router = useRouter();
@@ -28,71 +27,128 @@ export default function Home() {
   const normalize = (c: string) => c.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col items-center justify-center gap-8 p-6">
-      <div className="text-center">
-        <h1 className="display text-5xl text-gold drop-shadow-[0_4px_24px_rgba(245,197,24,0.3)]">Feud Night</h1>
-        <p className="mt-2 text-white/50">3 teams · 30 phones · one apartment · survey says</p>
-      </div>
+    <main className="mx-auto flex min-h-dvh w-[min(96vw,64rem)] flex-col gap-12 px-4 py-12 md:py-16">
+      <header className="flex flex-col items-start gap-5">
+        <span className="chip">
+          <span aria-hidden>✦</span> Free · No downloads · 3 teams · ~30 players
+        </span>
+        <h1 className="display text-6xl leading-[0.9] tracking-tight sm:text-8xl">
+          Feud
+          <span className="bg-gradient-to-r from-gold via-gold-soft to-tangerine bg-clip-text text-transparent">
+            Night
+          </span>
+        </h1>
+        <p className="max-w-2xl text-lg text-paper/65 md:text-xl">
+          Family Feud for your apartment, minus the studio budget. Phones are
+          controllers, the TV is the board, and the birthday person is the
+          survey.
+        </p>
+      </header>
 
-      <div className="flex w-full flex-col gap-4 rounded-3xl border border-line bg-card p-6">
-        <button
-          onClick={hostGame}
-          disabled={creating}
-          className="display w-full rounded-2xl border border-gold/50 bg-gold px-4 py-5 text-xl text-black transition-transform active:scale-[0.98] disabled:opacity-50"
-        >
-          {creating ? "Creating room…" : "🎙 Host a game"}
-        </button>
-
-        <div className="flex items-center gap-3 text-xs text-white/25">
-          <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              tag: "Face-off",
+              body: "One rep per team steps up. First to hit the big red button takes control — the server calls the buzzer race.",
+              accent: "text-gold",
+            },
+            {
+              tag: "Survey says",
+              body: "Your team shouts answers from their phones; the captain locks one in. Three strikes and the other two teams get a simultaneous steal.",
+              accent: "text-neon",
+            },
+            {
+              tag: "Fast Money",
+              body: "Two players from the winning team, five questions, headphones on. Duplicates score zero. Two hundred wins the night.",
+              accent: "text-bubble",
+            },
+          ].map((step, i) => (
+            <article
+              key={step.tag}
+              className="surface flex flex-col gap-3 p-6 animate-float"
+              style={{ ["--tilt" as string]: `${i % 2 ? 0.7 : -0.7}deg`, animationDelay: `${i * 0.6}s` }}
+            >
+              <span className={`label ${step.accent}`}>{step.tag}</span>
+              <p className="text-sm leading-relaxed text-paper/65">{step.body}</p>
+            </article>
+          ))}
         </div>
 
-        <form
-          className="flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (normalize(code).length === 4) router.push(`/play?g=${normalize(code)}`);
-          }}
-        >
-          <label className="text-xs uppercase tracking-widest text-white/40">join with room code</label>
-          <div className="flex gap-2">
-            <input
-              value={code}
-              onChange={(e) => setCode(normalize(e.target.value))}
-              placeholder="ABCD"
-              maxLength={4}
-              className="display min-w-0 flex-1 rounded-xl border border-line bg-card-2 px-4 py-3 text-center text-2xl tracking-[0.4em] text-white placeholder:text-white/20 focus:border-gold focus:outline-none"
-            />
-            <Button type="submit" variant="primary" disabled={normalize(code).length !== 4}>
-              Join
-            </Button>
+        <div className="surface flex flex-col gap-5 p-6 md:p-7">
+          <div>
+            <span className="label text-gold">Host</span>
+            <button
+              onClick={hostGame}
+              disabled={creating}
+              className="btn-gold mt-2 w-full py-4 text-base"
+            >
+              {creating ? "Creating room…" : "🎙 Create a room"}
+            </button>
+            <p className="mt-2 text-xs text-paper/40">
+              Opens the host console — you judge answers and run the show.
+            </p>
           </div>
-        </form>
 
-        <form
-          className="flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (normalize(code).length === 4) router.push(`/board?g=${normalize(code)}`);
-          }}
-        >
-          <button
-            type="submit"
-            disabled={normalize(code).length !== 4}
-            className="text-xs text-white/35 underline disabled:no-underline disabled:opacity-40"
+          <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-paper/30">
+            <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (normalize(code).length === 4) router.push(`/play?g=${normalize(code)}`);
+            }}
           >
-            open this room as the TV board →
-          </button>
-        </form>
+            <span className="label">Join a game</span>
+            <div className="flex gap-2">
+              <input
+                value={code}
+                onChange={(e) => setCode(normalize(e.target.value))}
+                placeholder="ABCD"
+                maxLength={4}
+                className="field display text-center text-2xl tracking-[0.4em]"
+              />
+              <button type="submit" disabled={normalize(code).length !== 4} className="btn-blue shrink-0 px-5">
+                Join
+              </button>
+            </div>
+            <button
+              type="button"
+              disabled={normalize(code).length !== 4}
+              onClick={() => router.push(`/board?g=${normalize(code)}`)}
+              className="self-start text-xs text-paper/40 underline decoration-white/20 underline-offset-4 transition hover:text-paper/70 disabled:no-underline disabled:opacity-40"
+            >
+              open this room as the TV board →
+            </button>
+          </form>
 
-        {error && <p className="text-center text-sm text-red-400">{error}</p>}
-      </div>
+          {error && <p className="text-center text-sm text-bubble">{error}</p>}
+        </div>
+      </section>
 
-      <ol className="flex list-inside list-decimal flex-col gap-1 text-xs text-white/35">
-        <li>Host creates a room, opens the console on the laptop</li>
-        <li>TV/projector opens the board view</li>
-        <li>Guests scan the QR — phone becomes their controller</li>
-      </ol>
+      <section className="surface p-6 md:p-8">
+        <h2 className="display text-2xl">Playing in a small apartment</h2>
+        <div className="mt-4 grid gap-6 text-sm leading-relaxed text-paper/65 md:grid-cols-3">
+          <p>
+            <span className="label mb-2 block text-gold">Setup</span>
+            Host creates a room on the laptop. The TV shows a QR code — guests
+            scan, type a name, and get dealt onto one of three teams.
+          </p>
+          <p>
+            <span className="label mb-2 block text-neon">Space</span>
+            Only three reps ever need to stand up. Everyone else plays from
+            their team&apos;s corner of the apartment — suggestions, steals and
+            fast money all happen on phones.
+          </p>
+          <p>
+            <span className="label mb-2 block text-bubble">Chaos</span>
+            Reconnects are seamless: lock your phone, close the tab, come back —
+            your team, score and captaincy are waiting.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }

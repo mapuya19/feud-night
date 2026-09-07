@@ -51,7 +51,7 @@ function Scoreboard({ state }: { state: PublicState }) {
           key={t.id}
           className={cn(
             "rounded-2xl border bg-card px-4 py-3 transition-all duration-300",
-            t.isControlling ? "scale-[1.03] shadow-lg" : "border-line",
+            t.isControlling ? "scale-[1.03] shadow-lg" : "border-white/15",
           )}
           style={t.isControlling ? { borderColor: t.color, boxShadow: `0 0 32px ${t.color}55` } : undefined}
         >
@@ -76,9 +76,7 @@ function Scoreboard({ state }: { state: PublicState }) {
 function RoundTag({ state }: { state: PublicState }) {
   return (
     <div className="flex items-center gap-2 text-xs text-white/50">
-      <span className="display rounded-md bg-card-2 px-2 py-1 text-white/70">
-        Round {state.roundIndex + 1}/{state.totalRounds}
-      </span>
+      <span className="display rounded-md bg-white/10 px-2.5 py-1 text-white/60">Round {state.roundIndex + 1}/{state.totalRounds}</span>
       {state.multiplier > 1 && (
         <span className="display rounded-md bg-gold/20 px-2 py-1 text-gold">×{state.multiplier}</span>
       )}
@@ -101,7 +99,7 @@ function LobbyBoard({ state }: { state: PublicState }) {
         </h1>
         <p className="display mt-2 text-center text-lg text-white/50">3 teams · one apartment · total chaos</p>
       </div>
-      <div className="flex items-center gap-10 rounded-3xl border border-line bg-card p-10">
+      <div className="flex items-center gap-10 rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-10">
         <div className="flex flex-col items-center gap-3">
           {joinUrl && <QRCodeSVG value={joinUrl} size={220} bgColor="#12121e" fgColor="#f4f4f8" level="M" />}
           <span className="text-xs text-white/40">scan to join</span>
@@ -114,7 +112,7 @@ function LobbyBoard({ state }: { state: PublicState }) {
       </div>
       <div className="grid w-full max-w-3xl grid-cols-3 gap-3">
         {state.teams.map((t) => (
-          <div key={t.id} className="rounded-2xl border border-line bg-card p-4 text-center">
+          <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4 text-center">
             <div className="display text-xl" style={{ color: t.color }}>
               {t.name}
             </div>
@@ -155,13 +153,13 @@ function Slot({ slot, index }: { slot: PublicSlot; index: number }) {
       layout
       className={cn(
         "flex h-full items-center gap-4 rounded-xl border px-5 py-3",
-        slot.revealed ? "border-blue-300/60 bg-gradient-to-b from-blue-500 to-blue-700 shadow-[0_8px_30px_rgba(37,99,235,0.35)]" : "border-line bg-card-2",
+        slot.revealed ? "border-blue-300/60 bg-gradient-to-b from-blue-500 to-blue-700 shadow-[0_8px_30px_rgba(37,99,235,0.35)]" : "border-white/15 bg-card-2",
       )}
     >
       <span
         className={cn(
           "display flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-lg",
-          slot.revealed ? "bg-white/20 text-white" : "bg-line/60 text-white/40",
+          slot.revealed ? "bg-white/20 text-white" : "bg-white/10 text-white/40",
         )}
       >
         {index + 1}
@@ -197,13 +195,17 @@ function RoundBoard({ state }: { state: PublicState }) {
       <div className="flex items-start justify-between gap-4">
         <RoundTag state={state} />
         {state.question && (
-          <div className="display rounded-xl border border-gold/40 bg-gold/10 px-5 py-2 text-2xl text-gold tabular-nums">
+          <div className="display rounded-2xl border border-gold/40 bg-gold/10 px-5 py-2 text-2xl text-gold tabular-nums shadow-[0_0_28px_rgba(245,197,24,0.15)]">
             bank {state.question.bank}
           </div>
         )}
       </div>
 
-      {q && <h2 className="display max-w-5xl text-balance text-3xl leading-tight text-white sm:text-4xl">{q.prompt}</h2>}
+      {q && (
+        <h2 className="display max-w-5xl text-balance text-3xl leading-[1.05] text-paper drop-shadow-[0_2px_18px_rgba(0,0,0,0.6)] sm:text-4xl">
+          {q.prompt}
+        </h2>
+      )}
 
       <div className="grid flex-1 grid-cols-2 content-stretch gap-3">
         {q?.slots.map((slot, i) => (
@@ -246,7 +248,7 @@ function RoundBoard({ state }: { state: PublicState }) {
                         "display rounded-full px-3 py-1 text-xs",
                         state.steal!.submittedTeamIds.includes(t.id)
                           ? "bg-emerald-500/20 text-emerald-300 line-through"
-                          : "border border-line text-white/50",
+                          : "border border-white/15 text-white/50",
                       )}
                     >
                       {state.steal!.submittedTeamIds.includes(t.id) ? `${t.name} locked ✓` : `${t.name} huddling…`}
@@ -374,7 +376,7 @@ function FastMoneyReveal({ state }: { state: PublicState }) {
         {fm.reveal!.prompts.map((prompt, qi) => {
           const shown = step >= qi;
           return (
-            <div key={qi} className={cn("rounded-xl border p-3", shown ? "border-line bg-card" : "border-transparent bg-card/40 opacity-50")}>
+            <div key={qi} className={cn("rounded-xl border p-3", shown ? "border-white/15 bg-card" : "border-transparent bg-white/[0.02] opacity-50")}>
               <div className="flex items-center justify-between gap-4">
                 <span className="display truncate text-lg text-white/80">{prompt}</span>
                 <div className="flex shrink-0 gap-6">

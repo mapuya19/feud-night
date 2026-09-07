@@ -38,7 +38,7 @@ function Header({ state, status, code }: { state: PublicState; status: string; c
       ? `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/play?g=${code}`
       : "";
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl px-4 py-3">
       <div className="flex flex-col">
         <span className="display text-xl text-white">
           FEUD NIGHT <span className="text-white/30">· host</span>
@@ -53,7 +53,7 @@ function Header({ state, status, code }: { state: PublicState; status: string; c
           {showQr ? "Hide QR" : "Show QR"}
         </Button>
         {showQr && joinUrl && (
-          <div className="animate-pop-in flex flex-col items-center rounded-xl border border-line bg-card-2 p-3">
+          <div className="animate-pop-in flex flex-col items-center rounded-xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-3">
             <QRCodeSVG value={joinUrl} size={120} bgColor="#1a1a2b" fgColor="#f4f4f8" />
             <span className="mt-1 text-[10px] text-white/40">{joinUrl}</span>
           </div>
@@ -69,7 +69,7 @@ function LobbyHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   const total = state.teams.reduce((n, t) => n + t.playerCount, 0);
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <p className="text-sm text-white/50">
         {total} players in. Teams auto-balance as people join — you can rename teams and reassign captains below.
       </p>
@@ -94,7 +94,7 @@ function TeamAdminRow({ state, teamId }: { state: PublicState; teamId: string })
   const members = state.players?.filter((p) => p.teamId === teamId) ?? [];
   const [name, setName] = useState(team.name);
   return (
-    <div className="rounded-xl border border-line bg-card-2 p-3">
+    <div className="rounded-xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-3">
       <div className="flex items-center gap-2">
         <span className="h-3 w-3 rounded-full" style={{ backgroundColor: team.color }} />
         <input
@@ -117,8 +117,8 @@ function TeamAdminRow({ state, teamId }: { state: PublicState; teamId: string })
               m.isCaptain
                 ? "bg-gold/20 text-gold"
                 : m.connected
-                  ? "bg-line/50 text-white/60 hover:bg-line"
-                  : "bg-line/20 text-white/25 line-through",
+                  ? "bg-white/[0.06] text-white/70 hover:bg-white/10"
+                  : "bg-white/[0.03] text-white/25 line-through",
             )}
             title={m.connected ? "Tap to make captain" : "disconnected"}
           >
@@ -136,12 +136,12 @@ function TeamAdminRow({ state, teamId }: { state: PublicState; teamId: string })
 function FaceoffHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <h2 className="display text-lg text-white">🔔 Face-off — waiting for a buzz</h2>
       <p className="text-sm text-white/50">{state.question?.prompt}</p>
       <div className="grid grid-cols-3 gap-2">
         {state.teams.map((t) => (
-          <div key={t.id} className="rounded-xl border border-line bg-card-2 p-3 text-center">
+          <div key={t.id} className="rounded-xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-3 text-center">
             <div className="display text-sm" style={{ color: t.color }}>
               {t.name}
             </div>
@@ -171,14 +171,14 @@ function PlayingHost({ state }: { state: PublicState }) {
   const pending = state.pendingAnswer;
   const unrevealed = state.question?.slots.map((s, i) => ({ s, i })).filter(({ s }) => !s.revealed) ?? [];
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-4">
+    <section className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <h2 className="display text-lg text-white">⚖️ Judge the answer</h2>
       <p className="text-sm text-white/50">{state.question?.prompt}</p>
 
       <div
         className={cn(
           "display rounded-xl border-2 border-dashed p-4 text-center text-2xl",
-          pending ? "border-gold bg-gold/10 text-gold" : "border-line text-white/25",
+          pending ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/25",
         )}
       >
         {pending ? `“${pending.text}” — ${pending.byName}` : state.suggestions.length ? "Waiting for captain to lock…" : "Waiting for an answer…"}
@@ -187,7 +187,7 @@ function PlayingHost({ state }: { state: PublicState }) {
       {state.suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {state.suggestions.map((s, i) => (
-            <span key={i} className="rounded-full bg-line/40 px-2.5 py-1 text-xs text-white/50">
+            <span key={i} className="rounded-full bg-white/[0.05] px-2.5 py-1 text-xs text-white/50">
               {s.text} — {s.byName}
             </span>
           ))}
@@ -273,7 +273,7 @@ function StealJudgeHost({ state }: { state: PublicState }) {
                   onClick={() => setMarks((m) => ({ ...m, [r.teamId]: i }))}
                   className={cn(
                     "display rounded-lg px-2.5 py-1.5 text-xs",
-                    mark === i ? "bg-blue-600 text-white" : "bg-line/50 text-white/60 hover:bg-line",
+                    mark === i ? "bg-blue-600 text-white" : "bg-white/[0.06] text-white/70 hover:bg-white/10",
                   )}
                 >
                   {s.text} · {s.points}
@@ -283,7 +283,7 @@ function StealJudgeHost({ state }: { state: PublicState }) {
                 onClick={() => setMarks((m) => ({ ...m, [r.teamId]: null }))}
                 className={cn(
                   "display rounded-lg px-2.5 py-1.5 text-xs",
-                  mark === null && marks[r.teamId] !== undefined ? "bg-red-600 text-white" : "bg-line/50 text-white/60 hover:bg-line",
+                  mark === null && marks[r.teamId] !== undefined ? "bg-red-600 text-white" : "bg-white/[0.06] text-white/70 hover:bg-white/10",
                 )}
               >
                 No match
@@ -351,7 +351,7 @@ function FmIntroHost({ state }: { state: PublicState }) {
             onClick={() => toggle(m.id)}
             className={cn(
               "display rounded-full px-3 py-1.5 text-sm",
-              picked.includes(m.id) ? "bg-gold text-black" : "bg-line/50 text-white/60 hover:bg-line",
+              picked.includes(m.id) ? "bg-gold text-black" : "bg-white/[0.06] text-white/70 hover:bg-white/10",
             )}
           >
             {m.name}
@@ -378,7 +378,7 @@ function FmHost({ state }: { state: PublicState }) {
   const answered = cur !== null;
   const answeredAll = fm.questionIndex + 1 >= fm.questionCount;
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <div className="flex items-center justify-between">
         <h2 className="display text-lg text-gold">
           ⚡ {fm.playerNames[fm.playerIndex]} · Q{fm.questionIndex + 1}/{fm.questionCount}
@@ -484,7 +484,7 @@ function Roster({ state }: { state: PublicState }) {
     );
   }
   return (
-    <section className="rounded-2xl border border-line bg-card p-4">
+    <section className="rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="display text-sm text-white/60">Roster</h3>
         <button onClick={() => setOpen(false)} className="text-xs text-white/30 underline">
@@ -508,7 +508,7 @@ function Roster({ state }: { state: PublicState }) {
                     p.isRep
                       ? "bg-neon/15 text-neon"
                       : p.connected
-                        ? "text-white/60 hover:bg-line/50"
+                        ? "text-white/60 hover:bg-white/10/50"
                         : "text-white/25 line-through",
                   )}
                   title={p.isRep ? "Current rep" : "Tap to set as next face-off rep"}
