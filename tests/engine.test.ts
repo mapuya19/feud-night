@@ -186,6 +186,22 @@ describe("strikes & steal", () => {
     expect(s.steal?.submissions[0].teamId).toBe("red");
   });
 
+  it("zero steal submissions can be resolved after timer expiry", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "reveal_answer", slot: 0 }); // 40 revealed
+    strikeOut(s);
+
+    expect(expireTimer(s)).toBe(true);
+    expect(s.phase).toBe("steal_reveal");
+    expect(s.steal?.submissions).toHaveLength(0);
+    expect(applyHostAction(s, { type: "resolve_steal", marks: [] }).ok).toBe(true);
+    expect(s.phase).toBe("round_over");
+    expect(s.teams.blue.score).toBe(40);
+    expect(s.lastAward?.reason).toBe("failed_steal");
+  });
+
   it("only captains submit steals; controlling team excluded", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });

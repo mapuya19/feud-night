@@ -101,6 +101,11 @@ body {
     @apply rounded-3xl border border-white/10 bg-white/[0.045] backdrop-blur-xl;
   }
 
+  /* Primary action area on the private desktop host console. */
+  .host-panel {
+    @apply rounded-3xl border border-white/10 bg-white/[0.055] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:p-6;
+  }
+
   /* Eyebrow label */
   .label {
     @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-paper/45;
