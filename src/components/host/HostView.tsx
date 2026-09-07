@@ -79,6 +79,7 @@ function Header({ state, status, code }: { state: PublicState; status: string; c
 }
 
 function GameSnapshot({ state, code }: { state: PublicState; code: string }) {
+  const { hostAction } = useFeud();
   const q = state.question;
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 backdrop-blur-xl">
@@ -108,6 +109,19 @@ function GameSnapshot({ state, code }: { state: PublicState; code: string }) {
       <p className="mt-4 rounded-xl border border-bubble/20 bg-bubble/[0.06] px-3 py-2 text-[11px] leading-relaxed text-paper/55">
         Private view — pending answers and steals appear here only. Cast <span className="font-semibold text-neon">/board</span>, never this page.
       </p>
+      {state.phase !== "game_over" && state.phase !== "lobby" && (
+        <Button
+          variant="danger"
+          className="mt-3 w-full"
+          onClick={() => {
+            if (window.confirm("End the game now? Any unfinished question bank is discarded, and the current score leader wins.")) {
+              hostAction({ type: "end_game" });
+            }
+          }}
+        >
+          End game now
+        </Button>
+      )}
     </section>
   );
 }

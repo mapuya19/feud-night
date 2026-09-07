@@ -57,6 +57,20 @@ describe("lobby", () => {
     expect(applyHostAction(s, { type: "start_game" }).ok).toBe(true);
     expect(s.phase).toBe("faceoff");
   });
+
+  it("ends an in-progress game without awarding its unfinished bank", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "reveal_answer", slot: 0 }); // points are in the bank, not scores yet
+    s.teams.red.score = 10;
+
+    expect(applyHostAction(s, { type: "end_game" }).ok).toBe(true);
+    expect(s.phase).toBe("game_over");
+    expect(s.winnerTeamId).toBe("red");
+    expect(s.teams.blue.score).toBe(0);
+    expect(s.timer).toBeNull();
+  });
 });
 
 describe("faceoff", () => {
