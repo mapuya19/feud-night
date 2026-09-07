@@ -1,0 +1,158 @@
+[
+  {
+    "id": "subway-sins",
+    "prompt": "Name something people do on the NYC subway that they probably shouldn't",
+    "answers": [
+      { "text": "Stare at strangers", "points": 31 },
+      { "text": "Eat smelly food", "points": 24 },
+      { "text": "Manspread", "points": 15 },
+      { "text": "Talk loudly on the phone", "points": 12 },
+      { "text": "Clip their nails", "points": 8 },
+      { "text": "Fall asleep past their stop", "points": 6 },
+      { "text": "Busk badly", "points": 4 }
+    ]
+  },
+  {
+    "id": "great-party-signs",
+    "prompt": "Name a sign the birthday person is having a GREAT party",
+    "answers": [
+      { "text": "Dancing on furniture", "points": 29 },
+      { "text": "Happy tears", "points": 22 },
+      { "text": "Lost their phone", "points": 17 },
+      { "text": "Neighbors complained", "points": 13 },
+      { "text": "Slurred thank-you speech", "points": 10 },
+      { "text": "Made out with someone", "points": 6 },
+      { "text": "Ordered 4am pizza", "points": 3 }
+    ]
+  },
+  {
+    "id": "morning-after-floor",
+    "prompt": "Name the worst thing to find on the apartment floor after a party",
+    "answers": [
+      { "text": "Broken glass", "points": 27 },
+      { "text": "A mystery stain", "points": 23 },
+      { "text": "A stranger sleeping", "points": 18 },
+      { "text": "Someone's vape", "points": 13 },
+      { "text": "A lone earring", "points": 9 },
+      { "text": "Pizza crust", "points": 6 },
+      { "text": "A rat", "points": 4 }
+    ]
+  },
+  {
+    "id": "firstborn-trade",
+    "prompt": "Name something a New Yorker would trade their firstborn for",
+    "answers": [
+      { "text": "An affordable apartment", "points": 33 },
+      { "text": "In-unit washer/dryer", "points": 26 },
+      { "text": "A subway seat", "points": 15 },
+      { "text": "A rent-stabilized lease", "points": 12 },
+      { "text": "No neighbors upstairs", "points": 8 },
+      { "text": "The L train on weekends", "points": 4 },
+      { "text": "A bodega cat", "points": 2 }
+    ]
+  },
+  {
+    "id": "brooklyn-late",
+    "prompt": "Name an excuse for being late to a party in Brooklyn",
+    "answers": [
+      { "text": "The L train", "points": 34 },
+      { "text": "Uber surged", "points": 21 },
+      { "text": "Walked the wrong direction", "points": 16 },
+      { "text": "Work ran late", "points": 12 },
+      { "text": "Fell asleep on the couch", "points": 9 },
+      { "text": "Hair looked too good", "points": 5 },
+      { "text": "Stopped to pet a dog", "points": 3 }
+    ]
+  },
+  {
+    "id": "bodega-2am",
+    "prompt": "Name something you inevitably buy at a bodega at 2am",
+    "answers": [
+      { "text": "Bacon egg and cheese", "points": 30 },
+      { "text": "Chips", "points": 22 },
+      { "text": "Gatorade", "points": 17 },
+      { "text": "Cheap beer", "points": 13 },
+      { "text": "Tylenol", "points": 9 },
+      { "text": "Candy", "points": 5 },
+      { "text": "Cigarettes", "points": 4 }
+    ]
+  },
+  {
+    "id": "dating-red-flags",
+    "prompt": "Name a red flag on a dating profile",
+    "answers": [
+      { "text": "Gym mirror selfie", "points": 28 },
+      { "text": "\"Fluent in sarcasm\"", "points": 21 },
+      { "text": "Holding a fish", "points": 17 },
+      { "text": "\"Not here for hookups\"", "points": 13 },
+      { "text": "Only group photos", "points": 11 },
+      { "text": "Promotes crypto", "points": 7 },
+      { "text": "\"Ask me about my podcast\"", "points": 3 }
+    ]
+  },
+  {
+    "id": "tourist-say",
+    "prompt": "Name something tourists say about NYC that makes locals cringe",
+    "answers": [
+      { "text": "\"It's so dirty\"", "points": 26 },
+      { "text": "\"Is Times Square walkable?\"", "points": 19 },
+      { "text": "\"I love the Sex and the City tour\"", "points": 16 },
+      { "text": "Pronouncing Houston wrong", "points": 14 },
+      { "text": "\"Isn't it dangerous?\"", "points": 12 },
+      { "text": "\"The pizza is overrated\"", "points": 8 },
+      { "text": "\"I could never live here\"", "points": 5 }
+    ]
+  },
+  {
+    "id": "avoided-chore",
+    "prompt": "Name a chore you avoid until absolutely necessary",
+    "answers": [
+      { "text": "Dishes", "points": 32 },
+      { "text": "Laundry", "points": 24 },
+      { "text": "Cleaning the bathroom", "points": 18 },
+      { "text": "Taking out the trash", "points": 11 },
+      { "text": "Making the bed", "points": 8 },
+      { "text": "Grocery shopping", "points": 4 },
+      { "text": "Watering plants", "points": 3 }
+    ]
+  },
+  {
+    "id": "pretend-understand",
+    "prompt": "Name something people pretend to understand but don't",
+    "answers": [
+      { "text": "Cryptocurrency", "points": 29 },
+      { "text": "Modern art", "points": 21 },
+      { "text": "Wine tasting", "points": 18 },
+      { "text": "Jazz", "points": 13 },
+      { "text": "The stock market", "points": 10 },
+      { "text": "Football offsides", "points": 6 },
+      { "text": "Their health insurance", "points": 3 }
+    ]
+  },
+  {
+    "id": "lottery-first",
+    "prompt": "Name the first thing you'd do if you won the lottery",
+    "answers": [
+      { "text": "Quit my job", "points": 31 },
+      { "text": "Buy an apartment", "points": 25 },
+      { "text": "Travel", "points": 18 },
+      { "text": "Tell absolutely nobody", "points": 12 },
+      { "text": "Pay off debt", "points": 8 },
+      { "text": "Throw a huge party", "points": 4 },
+      { "text": "Buy mom a house", "points": 2 }
+    ]
+  },
+  {
+    "id": "party-food-gone-first",
+    "prompt": "Name a food that always shows up at a party and always goes first",
+    "answers": [
+      { "text": "Wings", "points": 27 },
+      { "text": "Pizza", "points": 23 },
+      { "text": "Guac", "points": 18 },
+      { "text": "Cookies", "points": 13 },
+      { "text": "Cheese board", "points": 10 },
+      { "text": "Chips", "points": 6 },
+      { "text": "Cake", "points": 3 }
+    ]
+  }
+]

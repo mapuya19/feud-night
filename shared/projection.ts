@@ -1,0 +1,242 @@
+import { ROUND_MULTIPLIERS } from "./config";
+import { bank } from "./engine";
+import type { GameState, Role } from "./types";
+
+/**
+ * Per-viewer projection of GameState. The Durable Object calls this before
+ * sending state to each connected socket — clients only ever receive their
+ * own view, so secrets are enforced server-side:
+ *
+ *  - Unrevealed board answers are hidden from everyone except the host.
+ *  - Steal submissions stay hidden until steal_reveal (a captain sees their own).
+ *  - Fast Money player 2 never sees player 1's answers until the reveal.
+ */
+export interface Viewer {
+  role: Role;
+  playerId?: string;
+  isHost: boolean;
+}
+
+export interface PublicSlot {
+  points: number;
+  revealed: boolean;
+  text: string | null; // present when revealed (or host)
+}
+
+export interface PublicTeam {
+  id: string;
+  name: string;
+  color: string;
+  score: number;
+  playerCount: number;
+  connectedCount: number;
+  isControlling: boolean;
+  captainName: string | null;
+  repName: string | null;
+}
+
+export interface PublicSteal {
+  endsAt: number | null;
+  durationMs: number;
+  submittedTeamIds: string[];
+  mySubmission: string | null;
+  results: { teamId: string; text: string; matched: boolean; matchedText: string | null }[] | null;
+}
+
+export interface PublicFastMoney {
+  playerNames: string[];
+  playerIndex: number;
+  activePlayerName: string | null;
+  questionIndex: number;
+  questionCount: number;
+  prompt: string | null;
+  timer: { endsAt: number; durationMs: number } | null;
+  /** Set for the active answerer (their own current answer). */
+  myAnswerState: "pending" | "submitted" | null;
+  /** Host only: the submitted answer awaiting judgment. */
+  hostCurrent: { text: string; timedOut: boolean } | null;
+  /** Host only: current FM question's survey answers, for judging points. */
+  hostQuestion: { answers: { text: string; points: number }[] } | null;
+  reveal: {
+    prompts: string[];
+    rows: { text: string; points: number; duplicate: boolean; timedOut: boolean }[][];
+    step: number;
+    total: number;
+  } | null;
+  total: number;
+}
+
+export interface PublicState {
+  code: string;
+  phase: GameState["phase"];
+  serverTime: number;
+  roundIndex: number;
+  totalRounds: number;
+  multiplier: number;
+  /** Set for player viewers — their own team. */
+  myTeamId: string | null;
+  teams: PublicTeam[];
+  players:
+    | { id: string; name: string; teamId: string; connected: boolean; isCaptain: boolean; isRep: boolean }[]
+    | null; // host only
+  question: { prompt: string | null; slots: PublicSlot[]; bank: number } | null;
+  strikes: number;
+  buzzWinnerName: string | null;
+  pendingAnswer: { text: string; byName: string } | null; // host + controlling team
+  suggestions: { text: string; byName: string }[]; // host + controlling team
+  steal: PublicSteal | null;
+  fastMoney: PublicFastMoney | null;
+  lastAward: { teamId: string; teamName: string; points: number; reason: string } | null;
+  winnerTeamId: string | null;
+}
+
+export function project(state: GameState, viewer: Viewer): PublicState {
+  const now = Date.now();
+  const myTeamId = viewer.playerId ? state.players[viewer.playerId]?.teamId : null;
+  const isControllingTeam = myTeamId !== null && myTeamId === state.controllingTeamId;
+
+  const teams: PublicTeam[] = Object.values(state.teams).map((t) => {
+    const repId = state.reps[t.id] ?? null;
+    const rep = repId ? state.players[repId] : null;
+    const captain = t.captainId ? state.players[t.captainId] : null;
+    return {
+      id: t.id,
+      name: t.name,
+      color: t.color,
+      score: t.score,
+      playerCount: t.players.length,
+      connectedCount: t.players.filter((pid) => state.players[pid]?.connected).length,
+      isControlling: t.id === state.controllingTeamId,
+      captainName: captain?.name ?? null,
+      repName: rep?.name ?? null,
+    };
+  });
+
+  const players = viewer.isHost
+    ? Object.values(state.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        teamId: p.teamId,
+        connected: p.connected,
+        isCaptain: state.teams[p.teamId]?.captainId === p.id,
+        isRep: (state.reps[p.teamId] ?? null) === p.id,
+      }))
+    : null;
+
+  let question: PublicState["question"] = null;
+  if (state.question) {
+    question = {
+      prompt: state.question.prompt,
+      slots: state.question.answers.map((a, i) => ({
+        points: a.points,
+        revealed: state.revealed[i],
+        text: state.revealed[i] || viewer.isHost ? a.text : null,
+      })),
+      bank: bank(state),
+    };
+  }
+
+  let steal: PublicSteal | null = null;
+  if (state.steal && (state.phase === "steal" || state.phase === "steal_reveal" || state.phase === "round_over")) {
+    const mine = myTeamId ? state.steal.submissions.find((s) => s.teamId === myTeamId) : undefined;
+    const resolved = state.steal.results;
+    const showing = state.phase === "steal_reveal" || state.phase === "round_over";
+    steal = {
+      endsAt: state.timer?.kind === "steal" ? state.timer.endsAt : null,
+      durationMs: state.timer?.kind === "steal" ? state.timer.durationMs : 15000,
+      submittedTeamIds: state.steal.submissions.map((s) => s.teamId),
+      mySubmission: mine?.text ?? null,
+      results: showing
+        ? state.steal.submissions.map((sub) => {
+            const r = resolved?.find((x) => x.teamId === sub.teamId);
+            return {
+              teamId: sub.teamId,
+              text: sub.text,
+              matched: r?.slot != null,
+              matchedText: r?.slot != null && state.question ? state.question.answers[r.slot].text : null,
+            };
+          })
+        : null,
+    };
+  }
+
+  let fastMoney: PublicFastMoney | null = null;
+  if (state.fastMoney) {
+    const fm = state.fastMoney;
+    const names = fm.playerIds.map((id) => state.players[id]?.name ?? "?");
+    const activeId = fm.playerIds[fm.playerIndex];
+    const activeQuestion = fm.questions[fm.questionIndex];
+    const cur = fm.answers[fm.questionIndex]?.[fm.playerIndex];
+    const inReveal = state.phase === "fast_money_reveal" || state.phase === "game_over";
+    const amActive = viewer.playerId === activeId;
+
+    fastMoney = {
+      playerNames: names,
+      playerIndex: fm.playerIndex,
+      activePlayerName: state.phase === "fast_money" ? names[fm.playerIndex] : null,
+      questionIndex: fm.questionIndex,
+      questionCount: fm.questions.length,
+      prompt:
+        state.phase === "fast_money" && (viewer.isHost || amActive || viewer.role === "board")
+          ? activeQuestion?.prompt ?? null
+          : inReveal
+            ? null
+            : null,
+      timer: state.timer?.kind === "fast_money" ? { endsAt: state.timer.endsAt, durationMs: state.timer.durationMs } : null,
+      myAnswerState: amActive ? (cur && (cur.text !== "" || cur.timedOut) ? "submitted" : "pending") : null,
+      hostCurrent:
+        viewer.isHost && cur && (cur.text !== "" || cur.timedOut)
+          ? { text: cur.text, timedOut: cur.timedOut }
+          : null,
+      hostQuestion:
+        viewer.isHost && state.phase === "fast_money" && activeQuestion
+          ? { answers: activeQuestion.answers.map((a) => ({ text: a.text, points: a.points })) }
+          : null,
+      reveal: inReveal
+        ? {
+            prompts: fm.questions.map((q) => q.prompt),
+            rows: fm.answers.map((row) => row.map((a) => ({ text: a.text, points: a.points, duplicate: a.duplicate, timedOut: a.timedOut }))),
+            step: fm.revealStep,
+            total: fm.total,
+          }
+        : null,
+      total: fm.total,
+    };
+  }
+
+  return {
+    code: state.code,
+    phase: state.phase,
+    serverTime: now,
+    roundIndex: state.roundIndex,
+    totalRounds: ROUND_MULTIPLIERS.length,
+    multiplier: ROUND_MULTIPLIERS[Math.min(state.roundIndex, ROUND_MULTIPLIERS.length - 1)],
+    myTeamId: myTeamId,
+    teams,
+    players,
+    question,
+    strikes: state.strikes,
+    buzzWinnerName: state.buzzWinnerId ? state.players[state.buzzWinnerId]?.name ?? null : null,
+    pendingAnswer:
+      viewer.isHost || isControllingTeam
+        ? state.pendingAnswer
+          ? { text: state.pendingAnswer.text, byName: state.pendingAnswer.byName }
+          : null
+        : null,
+    suggestions:
+      viewer.isHost || isControllingTeam
+        ? state.suggestions.map((s) => ({ text: s.text, byName: s.byName }))
+        : [],
+    steal,
+    fastMoney,
+    lastAward: state.lastAward
+      ? {
+          teamId: state.lastAward.teamId,
+          teamName: state.teams[state.lastAward.teamId]?.name ?? "?",
+          points: state.lastAward.points,
+          reason: state.lastAward.reason,
+        }
+      : null,
+    winnerTeamId: state.winnerTeamId,
+  };
+}
