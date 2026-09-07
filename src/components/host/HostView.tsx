@@ -377,6 +377,8 @@ function StealJudgeHost({ state }: { state: PublicState }) {
 function RoundOverHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   const lastRound = state.roundIndex + 1 >= state.totalRounds;
+  const nextRound = state.roundIndex + 2;
+  const nextIsFinal = nextRound === state.totalRounds;
   return (
     <section className="host-panel flex flex-col gap-4 border-gold/50 bg-gold/[0.09]">
       <h2 className="display text-xl text-gold">
@@ -387,7 +389,11 @@ function RoundOverHost({ state }: { state: PublicState }) {
         className="py-4 text-lg"
         onClick={() => hostAction({ type: "next_round" })}
       >
-        {lastRound ? "⚡ To Fast Money setup" : `▶ Round ${state.roundIndex + 2}${state.roundIndex + 2 >= 3 ? " (×2 points)" : ""}`}
+        {lastRound
+          ? "🏆 Reveal champions"
+          : nextIsFinal
+            ? "▶ FINAL BOARD · ×3 points"
+            : `▶ Round ${nextRound}${nextRound >= 3 ? " (×2 points)" : ""}`}
       </Button>
     </section>
   );

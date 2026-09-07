@@ -59,8 +59,8 @@ export default function Home() {
               accent: "text-neon",
             },
             {
-              tag: "Fast Money",
-              body: "Two players from the winning team, five questions, headphones on. Duplicates score zero. Two hundred wins the night.",
+              tag: "Final board",
+              body: "Four rounds build the score; then every team fights through one last full board worth triple points. Big enough for a comeback, familiar enough to stay chaotic.",
               accent: "text-bubble",
             },
           ].map((step, i) => (

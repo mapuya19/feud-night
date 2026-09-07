@@ -216,7 +216,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       if (next >= ROUND_MULTIPLIERS.length) {
         const leader = Object.values(state.teams).sort((a, b) => b.score - a.score)[0];
         state.winnerTeamId = leader?.id ?? null;
-        state.phase = "fast_money_intro";
+        state.phase = "game_over";
         state.question = null;
         state.timer = null;
         return ok;

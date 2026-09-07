@@ -15,7 +15,7 @@ player who can buzz that round (it rotates automatically; host can override
 it), while the **captain** locks the team&apos;s official answer and submits its
 steal. The host can change either role from the private console.
 
-**Rounds 1–4** (rounds 3–4 are double points):
+**Rounds 1–5** (rounds 3–4 are double points; round 5 is the final triple-points board):
 
 1. **Face-off** — one rep per team. First to hit the giant BUZZ button on
    their phone takes control (server-side race, ~100ms resolution).
@@ -28,14 +28,9 @@ steal. The host can change either role from the private console.
    answers are correct, the higher-ranked (higher-point) survey answer wins
    the bank.** Matched steals reveal on the board and the winner banks
    everything.
-4. Clear the board to bank it yourself; fail the steal and the points go
-   to the controlling team anyway.
-
-**Fast Money.** The winning team picks two players. Player 1 answers 5
-timed questions (20s each); player 2 repeats them (25s each) **without
-seeing player 1's answers** — the projection layer enforces this
-server-side. Duplicates score zero. Host steps through a dramatic reveal
-toward 200.
+4. **Final Board** — after four rounds, every team gets one last full
+   face-off / play / steal board worth **triple points**. The highest score
+   after that board wins the night.
 
 ## The host is the judge
 

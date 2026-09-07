@@ -1,7 +1,7 @@
 /** Game tuning constants — shared by engine, worker, and UI. */
 
-/** Points multiplier per round: 2 single rounds, 2 double rounds. */
-export const ROUND_MULTIPLIERS = [1, 1, 2, 2] as const;
+/** Two single rounds, two double rounds, then an all-team final triple board. */
+export const ROUND_MULTIPLIERS = [1, 1, 2, 2, 3] as const;
 
 /** Strikes before the steal opportunity opens. */
 export const STRIKES_TO_STEAL = 3;

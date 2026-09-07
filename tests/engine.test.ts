@@ -212,57 +212,29 @@ describe("strikes & steal", () => {
   });
 });
 
-describe("fast money", () => {
-  function toFastMoney(s: GameState): void {
-    applyHostAction(s, { type: "start_game" });
-    playRound(s);
-    playRound(s);
-    playRound(s);
-    playRound(s);
-    expect(s.phase).toBe("fast_money_intro");
-    expect(s.winnerTeamId).toBe("blue");
-  }
-
-  it("runs P1 → P2 with duplicate scoring and reveal totals", () => {
+describe("final triple board", () => {
+  it("plays a fifth all-team board at triple points, then reveals the champion", () => {
     const s = setup();
-    toFastMoney(s);
-    expect(applyHostAction(s, { type: "start_fast_money", playerIds: ["p1", "p4"] }).ok).toBe(true);
-    expect(s.phase).toBe("fast_money");
-    expect(s.fastMoney!.questions.length).toBe(5);
+    applyHostAction(s, { type: "start_game" });
+    const roundSums = s.questionPool.slice(0, 5).map(qsum);
 
-    for (let qi = 0; qi < 5; qi++) {
-      expect(applyHostAction(s, { type: "fm_start_question" }).ok).toBe(true);
-      expect(s.timer?.kind).toBe("fast_money");
-      expect(applyPlayerAction(s, "p1", { type: "fm_answer", text: `a${qi}` }).ok).toBe(true);
-      expect(applyPlayerAction(s, "p4", { type: "fm_answer", text: `no${qi}` }).ok).toBe(false); // not active
-      applyHostAction(s, { type: "fm_judge", points: 20, duplicate: false });
-      if (qi < 4) expect(applyHostAction(s, { type: "fm_next_question" }).ok).toBe(true);
-    }
-    expect(applyHostAction(s, { type: "fm_next_player" }).ok).toBe(true);
-    expect(s.fastMoney!.playerIndex).toBe(1);
+    // Complete the first four boards; each next_round opens the next face-off.
+    playRound(s);
+    playRound(s);
+    playRound(s);
+    playRound(s);
+    expect(s.phase).toBe("faceoff");
+    expect(s.roundIndex).toBe(4);
 
-    for (let qi = 0; qi < 5; qi++) {
-      applyHostAction(s, { type: "fm_start_question" });
-      if (qi === 0) {
-        applyPlayerAction(s, "p4", { type: "fm_answer", text: "a0" });
-        applyHostAction(s, { type: "fm_judge", points: 20, duplicate: true }); // → 0
-      } else if (qi === 1) {
-        expect(expireTimer(s)).toBe(true); // timeout path
-        applyHostAction(s, { type: "fm_judge", points: 0, duplicate: false });
-      } else {
-        applyPlayerAction(s, "p4", { type: "fm_answer", text: `b${qi}` });
-        applyHostAction(s, { type: "fm_judge", points: 20, duplicate: false });
-      }
-      if (qi < 4) applyHostAction(s, { type: "fm_next_question" });
-    }
+    // The fifth board is worth triple and is still a normal face-off/play/steal board.
+    applyPlayerAction(s, s.reps.blue!, { type: "buzz" });
+    clearBoard(s);
+    expect(s.phase).toBe("round_over");
+    expect(s.teams.blue.score).toBe(roundSums[0] + roundSums[1] + 2 * roundSums[2] + 2 * roundSums[3] + 3 * roundSums[4]);
 
-    applyHostAction(s, { type: "fm_reveal_step" }); // enters reveal
-    for (let i = 0; i < 6; i++) applyHostAction(s, { type: "fm_reveal_step" }); // steps through all 5 → totals
-    // P1: 5×20 = 100, P2: dup 0 + timeout 0 + 3×20 = 60 → 160
-    expect(s.fastMoney!.total).toBe(160);
-    expect(s.fastMoney!.revealStep).toBe(5);
-    applyHostAction(s, { type: "fm_reveal_step" }); // → game over
+    applyHostAction(s, { type: "next_round" });
     expect(s.phase).toBe("game_over");
+    expect(s.winnerTeamId).toBe("blue");
   });
 });
 
