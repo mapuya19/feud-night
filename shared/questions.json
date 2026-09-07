@@ -1,31 +1,5 @@
 [
   {
-    "id": "subway-sins",
-    "prompt": "Name something people do on the NYC subway that they probably shouldn't",
-    "answers": [
-      { "text": "Stare at strangers", "points": 31 },
-      { "text": "Eat smelly food", "points": 24 },
-      { "text": "Manspread", "points": 15 },
-      { "text": "Talk loudly on the phone", "points": 12 },
-      { "text": "Clip their nails", "points": 8 },
-      { "text": "Fall asleep past their stop", "points": 6 },
-      { "text": "Busk badly", "points": 4 }
-    ]
-  },
-  {
-    "id": "function-officially-lit",
-    "prompt": "Name something that means the function is officially lit",
-    "answers": [
-      { "text": "Karaoke starts", "points": 29 },
-      { "text": "An auntie starts dancing", "points": 22 },
-      { "text": "Someone says 'eat more'", "points": 17 },
-      { "text": "Soju bottles hit the table", "points": 13 },
-      { "text": "The parents stay past midnight", "points": 10 },
-      { "text": "The group photo takes 20 minutes", "points": 6 },
-      { "text": "Someone brings out fruit", "points": 3 }
-    ]
-  },
-  {
     "id": "function-group-chat",
     "prompt": "Name something that floods the group chat after the function",
     "answers": [
@@ -56,7 +30,7 @@
     "prompt": "Name an excuse for being late to a party in Brooklyn",
     "answers": [
       { "text": "The L train", "points": 34 },
-      { "text": "Uber surged", "points": 21 },
+      { "text": "Uber traffic", "points": 21 },
       { "text": "Walked the wrong direction", "points": 16 },
       { "text": "Work ran late", "points": 12 },
       { "text": "Fell asleep on the couch", "points": 9 },
@@ -71,10 +45,10 @@
       { "text": "Bacon egg and cheese", "points": 30 },
       { "text": "Chips", "points": 22 },
       { "text": "Gatorade", "points": 17 },
-      { "text": "Cheap beer", "points": 13 },
+      { "text": "Cheap beer/alcohol", "points": 13 },
       { "text": "Tylenol", "points": 9 },
       { "text": "Candy", "points": 5 },
-      { "text": "Cigarettes", "points": 4 }
+      { "text": "Weed", "points": 4 }
     ]
   },
   {
@@ -96,37 +70,11 @@
     "answers": [
       { "text": "\"It's so dirty\"", "points": 26 },
       { "text": "\"Is Times Square walkable?\"", "points": 19 },
-      { "text": "\"I love the Sex and the City tour\"", "points": 16 },
+      { "text": "\"It's just like Friends!\"", "points": 16 },
       { "text": "Pronouncing Houston wrong", "points": 14 },
       { "text": "\"Isn't it dangerous?\"", "points": 12 },
       { "text": "\"The pizza is overrated\"", "points": 8 },
       { "text": "\"I could never live here\"", "points": 5 }
-    ]
-  },
-  {
-    "id": "avoided-chore",
-    "prompt": "Name a chore you avoid until absolutely necessary",
-    "answers": [
-      { "text": "Dishes", "points": 32 },
-      { "text": "Laundry", "points": 24 },
-      { "text": "Cleaning the bathroom", "points": 18 },
-      { "text": "Taking out the trash", "points": 11 },
-      { "text": "Making the bed", "points": 8 },
-      { "text": "Grocery shopping", "points": 4 },
-      { "text": "Watering plants", "points": 3 }
-    ]
-  },
-  {
-    "id": "pretend-understand",
-    "prompt": "Name something people pretend to understand but don't",
-    "answers": [
-      { "text": "Cryptocurrency", "points": 29 },
-      { "text": "Modern art", "points": 21 },
-      { "text": "Wine tasting", "points": 18 },
-      { "text": "Jazz", "points": 13 },
-      { "text": "The stock market", "points": 10 },
-      { "text": "Football offsides", "points": 6 },
-      { "text": "Their health insurance", "points": 3 }
     ]
   },
   {
@@ -144,15 +92,67 @@
   },
   {
     "id": "h-mart-snack",
-    "prompt": "Name something you grab at H Mart 'just for a snack'",
+    "prompt": "Name something you grab at H Mart/Teso Life 'just for a snack'",
     "answers": [
-      { "text": "Kimbap", "points": 27 },
+      { "text": "Chips", "points": 27 },
       { "text": "Milk bread", "points": 23 },
       { "text": "Korean fried chicken", "points": 18 },
       { "text": "Instant ramen", "points": 13 },
       { "text": "Dumplings", "points": 10 },
       { "text": "Mochi", "points": 6 },
       { "text": "Seaweed snacks", "points": 3 }
+    ]
+  },
+  {
+    "id": "asian-parent-door",
+    "prompt": "Name something an Asian parent says the second you walk in the door",
+    "answers": [
+      { "text": "Have you eaten?", "points": 30 },
+      { "text": "Why are you so skinny?", "points": 21 },
+      { "text": "Take your shoes off", "points": 17 },
+      { "text": "When are you getting married?", "points": 13 },
+      { "text": "Why are you late?", "points": 10 },
+      { "text": "Do you have work tomorrow?", "points": 6 },
+      { "text": "Take food home", "points": 3 }
+    ]
+  },
+  {
+    "id": "nyc-apartment-luxury",
+    "prompt": "Name something that makes an NYC apartment feel luxurious",
+    "answers": [
+      { "text": "In-unit laundry", "points": 30 },
+      { "text": "A dishwasher", "points": 22 },
+      { "text": "Central air", "points": 17 },
+      { "text": "An elevator", "points": 13 },
+      { "text": "Natural light", "points": 9 },
+      { "text": "A doorman", "points": 6 },
+      { "text": "A second closet", "points": 3 }
+    ]
+  },
+  {
+    "id": "nyc-night-out-check",
+    "prompt": "Name something you check before leaving for a night out in NYC",
+    "answers": [
+      { "text": "The MTA app", "points": 29 },
+      { "text": "Phone battery", "points": 22 },
+      { "text": "Wallet or ID", "points": 18 },
+      { "text": "The weather", "points": 13 },
+      { "text": "Uber prices", "points": 10 },
+      { "text": "Outfit or hair", "points": 5 },
+      { "text": "Keys", "points": 3 }
+    ]
+  },
+  {
+    "id": "nyc-roommate-chat",
+    "prompt": "Name something an NYC roommate says in the group chat",
+    "answers": [
+      { "text": "Can someone take out the trash?", "points": 28 },
+      { "text": "Rent is due", "points": 22 },
+      { "text": "A package is downstairs", "points": 18 },
+      { "text": "We need toilet paper", "points": 13 },
+      { "text": "I'm having people over", "points": 10 },
+      { "text": "Who used all the hot water?", "points": 6 },
+      { "text": "Sorry about the noise", "points": 3 }
     ]
   }
 ]
