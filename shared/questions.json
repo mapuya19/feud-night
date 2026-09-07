@@ -13,42 +13,42 @@
     ]
   },
   {
-    "id": "great-party-signs",
-    "prompt": "Name a sign the birthday person is having a GREAT party",
+    "id": "function-officially-lit",
+    "prompt": "Name something that means the function is officially lit",
     "answers": [
-      { "text": "Dancing on furniture", "points": 29 },
-      { "text": "Happy tears", "points": 22 },
-      { "text": "Lost their phone", "points": 17 },
-      { "text": "Neighbors complained", "points": 13 },
-      { "text": "Slurred thank-you speech", "points": 10 },
-      { "text": "Made out with someone", "points": 6 },
-      { "text": "Ordered 4am pizza", "points": 3 }
+      { "text": "Karaoke starts", "points": 29 },
+      { "text": "An auntie starts dancing", "points": 22 },
+      { "text": "Someone says 'eat more'", "points": 17 },
+      { "text": "Soju bottles hit the table", "points": 13 },
+      { "text": "The parents stay past midnight", "points": 10 },
+      { "text": "The group photo takes 20 minutes", "points": 6 },
+      { "text": "Someone brings out fruit", "points": 3 }
     ]
   },
   {
-    "id": "morning-after-floor",
-    "prompt": "Name the worst thing to find on the apartment floor after a party",
+    "id": "function-group-chat",
+    "prompt": "Name something that floods the group chat after the function",
     "answers": [
-      { "text": "Broken glass", "points": 27 },
-      { "text": "A mystery stain", "points": 23 },
-      { "text": "A stranger sleeping", "points": 18 },
-      { "text": "Someone's vape", "points": 13 },
-      { "text": "A lone earring", "points": 9 },
-      { "text": "Pizza crust", "points": 6 },
-      { "text": "A rat", "points": 4 }
+      { "text": "Blurry videos", "points": 27 },
+      { "text": "Venmo requests", "points": 23 },
+      { "text": "'Made it home?' texts", "points": 18 },
+      { "text": "Airdropped photos", "points": 13 },
+      { "text": "Someone apologizing", "points": 9 },
+      { "text": "A lost-item photo", "points": 6 },
+      { "text": "'Who took my…?'", "points": 4 }
     ]
   },
   {
-    "id": "firstborn-trade",
-    "prompt": "Name something a New Yorker would trade their firstborn for",
+    "id": "apartment-lease",
+    "prompt": "Name something a New Yorker checks before signing an apartment lease",
     "answers": [
-      { "text": "An affordable apartment", "points": 33 },
+      { "text": "The rent", "points": 33 },
       { "text": "In-unit washer/dryer", "points": 26 },
-      { "text": "A subway seat", "points": 15 },
-      { "text": "A rent-stabilized lease", "points": 12 },
-      { "text": "No neighbors upstairs", "points": 8 },
-      { "text": "The L train on weekends", "points": 4 },
-      { "text": "A bodega cat", "points": 2 }
+      { "text": "Distance to the subway", "points": 15 },
+      { "text": "Whether it's rent-stabilized", "points": 12 },
+      { "text": "Water pressure", "points": 8 },
+      { "text": "Natural light", "points": 4 },
+      { "text": "A bodega nearby", "points": 2 }
     ]
   },
   {
@@ -143,16 +143,16 @@
     ]
   },
   {
-    "id": "party-food-gone-first",
-    "prompt": "Name a food that always shows up at a party and always goes first",
+    "id": "h-mart-snack",
+    "prompt": "Name something you grab at H Mart 'just for a snack'",
     "answers": [
-      { "text": "Wings", "points": 27 },
-      { "text": "Pizza", "points": 23 },
-      { "text": "Guac", "points": 18 },
-      { "text": "Cookies", "points": 13 },
-      { "text": "Cheese board", "points": 10 },
-      { "text": "Chips", "points": 6 },
-      { "text": "Cake", "points": 3 }
+      { "text": "Kimbap", "points": 27 },
+      { "text": "Milk bread", "points": 23 },
+      { "text": "Korean fried chicken", "points": 18 },
+      { "text": "Instant ramen", "points": 13 },
+      { "text": "Dumplings", "points": 10 },
+      { "text": "Mochi", "points": 6 },
+      { "text": "Seaweed snacks", "points": 3 }
     ]
   }
 ]
