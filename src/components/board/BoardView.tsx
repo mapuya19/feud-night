@@ -63,9 +63,10 @@ function Scoreboard({ state }: { state: PublicState }) {
               {t.score}
             </motion.span>
           </div>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/40">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/40">
             <span>{t.playerCount} players</span>
-            {t.repName && <span className="truncate">· up now: {t.repName}</span>}
+            {t.captainName && <span className="truncate">· 👑 {t.captainName}</span>}
+            {t.repName && <span className="truncate">· 🔔 {t.repName}</span>}
           </div>
         </div>
       ))}

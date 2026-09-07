@@ -152,8 +152,15 @@ function LobbyPanel({ state }: { state: PublicState }) {
           <div className="display text-3xl" style={{ color: myTeam.color }}>
             {myTeam.name}
           </div>
-          <div className="text-sm text-white/50">
-            {myTeam.playerCount} player{myTeam.playerCount === 1 ? "" : "s"} · captain: {myTeam.captainName ?? "—"}
+          <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-white/50">
+            <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
+              <span className="label block text-[9px]">👑 Captain</span>
+              <span className="mt-0.5 block truncate text-white/80">{myTeam.captainName ?? "—"}</span>
+            </div>
+            <div className="rounded-lg bg-white/[0.04] px-2.5 py-2">
+              <span className="label block text-[9px]">🔔 Face-off rep</span>
+              <span className="mt-0.5 block truncate text-white/80">{myTeam.repName ?? "Set next round"}</span>
+            </div>
           </div>
         </>
       ) : (
@@ -360,7 +367,13 @@ function StealPanel({ state }: { state: PublicState }) {
         <span className="display text-xl text-gold">🥷 CAPTAIN — THE STEAL IS YOURS</span>
         {steal?.endsAt && <Countdown endsAt={steal.endsAt} offsetMs={serverOffsetMs} className="text-3xl" />}
       </div>
+      <div className="mt-1 flex items-center gap-2 text-xs text-white/50">
+        <span>👑 Captain: {myTeam?.captainName ?? "—"}</span>
+        <span className="text-white/20">•</span>
+        <span>🔔 Rep: {myTeam?.repName ?? "—"}</span>
+      </div>
       <StealForm onSubmit={(text) => playerAction({ type: "submit_steal", text })} />
+      <p className="text-center text-xs text-white/40">Both teams correct? The higher-ranked board answer wins the bank.</p>
     </div>
   );
 }

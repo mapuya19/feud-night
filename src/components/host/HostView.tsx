@@ -156,6 +156,11 @@ function TeamAdminRow({ state, teamId }: { state: PublicState; teamId: string })
         />
         <span className="text-xs text-white/35">{members.length}p</span>
       </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/55">
+        <span><span className="text-gold">👑 Captain:</span> {team.captainName ?? "choose below"}</span>
+        <span><span className="text-neon">🔔 Face-off rep:</span> {team.repName ?? "rotates when the game starts"}</span>
+      </div>
+      <p className="mt-2 label text-[9px]">Tap a player to make them captain</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {members.map((m) => (
           <button
@@ -194,7 +199,7 @@ function FaceoffHost({ state }: { state: PublicState }) {
             <div className="display text-base" style={{ color: t.color }}>
               {t.name}
             </div>
-            <div className="mt-1 text-sm text-white/70">{t.repName ?? "no rep"}</div>
+            <div className="mt-1 text-sm text-white/70">🔔 Face-off rep: {t.repName ?? "no rep"}</div>
           </div>
         ))}
       </div>

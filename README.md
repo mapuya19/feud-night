@@ -10,6 +10,11 @@ laptop runs the show. Real-time over WebSockets, free-tier hosted.
 Guests scan → type a name → auto-join one of **3 teams** (~10 each).
 Reps rotate every round so everyone gets a face-off moment.
 
+**Roles.** Each team has two separate roles: the **face-off rep** is the only
+player who can buzz that round (it rotates automatically; host can override
+it), while the **captain** locks the team&apos;s official answer and submits its
+steal. The host can change either role from the private console.
+
 **Rounds 1–4** (rounds 3–4 are double points):
 
 1. **Face-off** — one rep per team. First to hit the giant BUZZ button on
@@ -19,9 +24,10 @@ Reps rotate every round so everyone gets a face-off moment.
    judges it against the board: reveal or strike.
 3. **Steal** — after 3 strikes, both opposing teams get a 15-second huddle.
    Each **captain secretly submits one steal answer** from their phone.
-   Both reveal simultaneously on the TV; the host judges each. If both
-   match, the higher-ranked survey answer wins. Matched steals reveal on
-   the board and the winner banks everything.
+   Both reveal simultaneously on the TV; the host judges each. **If both steal
+   answers are correct, the higher-ranked (higher-point) survey answer wins
+   the bank.** Matched steals reveal on the board and the winner banks
+   everything.
 4. Clear the board to bank it yourself; fail the steal and the points go
    to the controlling team anyway.
 

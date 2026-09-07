@@ -55,7 +55,7 @@ export default function Home() {
             },
             {
               tag: "Survey says",
-              body: "Your team shouts answers from their phones; the captain locks one in. Three strikes and the other two teams get a simultaneous steal.",
+              body: "Your team shouts answers from their phones; the captain locks one in. The face-off rep and captain can be different people. Three strikes gives the other teams a simultaneous steal — if both are right, the higher-ranked survey answer wins.",
               accent: "text-neon",
             },
             {
