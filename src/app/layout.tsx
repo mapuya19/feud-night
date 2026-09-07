@@ -17,7 +17,7 @@ const inter = Inter({
 
 const title = "Feud Night — Family Feud-style party game";
 const description =
-  "A Family Feud-style party game: 2–4 teams, phones as controllers, TV as the board, up to 32 players. Survey says.";
+  "A Family Feud-style party game: 2–5 teams, phones as controllers, TV as the board, up to 40 players. Survey says.";
 
 export const metadata: Metadata = {
   title: { default: title, template: "%s · Feud Night" },

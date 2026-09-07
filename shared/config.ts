@@ -9,12 +9,13 @@ export const STRIKES_TO_STEAL = 3;
 /** Huddle time for simultaneous steals, ms. */
 export const STEAL_DURATION_MS = 15_000;
 
-/** Team palette and order. A room uses the first N of these (2–4 teams). */
+/** Team palette and order. A room uses the first N of these (2–5 teams). */
 export const TEAM_DEFAULTS = [
   { id: "blue", name: "Team Blue", color: "#2563eb" },
   { id: "red", name: "Team Red", color: "#dc2626" },
   { id: "gold", name: "Team Gold", color: "#d97706" },
   { id: "violet", name: "Team Violet", color: "#8b5cf6" },
+  { id: "emerald", name: "Team Emerald", color: "#059669" },
 ] as const;
 
 /** Teams per room can be tuned by the host between 2 and MAX_TEAMS. */

@@ -1,13 +1,13 @@
 # Feud Night 🎉
 
-A **Family Feud-style party game** for 2–4 teams (up to 8 players each, 32
+A **Family Feud-style party game** for 2–5 teams (up to 8 players each, 40
 max). Phones are controllers, a TV/projector is the board, and a host laptop
 runs the show. Real-time over WebSockets, free-tier hosted.
 
 ## How it plays
 
 **Setup.** Host creates a room on their laptop. The TV shows a QR code.
-Guests scan → type a name → choose a team (the host sets 2–4 teams)
+Guests scan → type a name → choose a team (the host sets 2–5 teams)
 and may volunteer as that team’s provisional captain. The host can move players
 or correct captains, then locks the roster before play begins. Reps rotate every
 round so everyone gets a face-off moment.

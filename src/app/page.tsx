@@ -83,8 +83,13 @@ export default function Home() {
             <span className="label text-gold">Host</span>
             <div className="mt-2 flex flex-col gap-2">
               <span className="text-xs text-paper/50">How many teams?</span>
-              <div className="grid grid-cols-3 gap-2" role="group" aria-label="Number of teams">
-                {[2, 3, 4].map((n) => (
+              <div
+                className="grid gap-2"
+                role="group"
+                aria-label="Number of teams"
+                style={{ gridTemplateColumns: `repeat(${MAX_TEAMS - MIN_TEAMS + 1}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => MIN_TEAMS + i).map((n) => (
                   <button
                     key={n}
                     type="button"
@@ -160,7 +165,7 @@ export default function Home() {
         <div className="mt-4 grid gap-6 text-sm leading-relaxed text-paper/65 md:grid-cols-3">
           <p>
             <span className="label mb-2 block text-gold">Setup</span>
-            Host creates a room on the laptop and picks 2–4 teams. The TV shows a
+            Host creates a room on the laptop and picks 2–5 teams. The TV shows a
             QR code — guests scan, type a name, pick a team, and optionally claim
             its provisional captain spot before the host locks the roster.
           </p>

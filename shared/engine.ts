@@ -20,7 +20,7 @@ export interface EngineResult {
 const ok: EngineResult = { ok: true };
 const fail = (error: string): EngineResult => ({ ok: false, error });
 
-/** Keep a requested team count inside the supported 2–4 range. */
+/** Keep a requested team count inside the supported 2–5 range. */
 export function clampTeamCount(count: number): number {
   return Math.max(MIN_TEAMS, Math.min(MAX_TEAMS, Math.round(count)));
 }

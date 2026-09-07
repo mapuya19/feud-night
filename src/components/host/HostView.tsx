@@ -262,7 +262,7 @@ function FaceoffHost({ state }: { state: PublicState }) {
     <section className="host-panel flex flex-col gap-4">
       <h2 className="display text-2xl text-white sm:text-3xl">🔔 Face-off — waiting for a buzz</h2>
       <p className="max-w-4xl text-lg leading-snug text-white/65">{state.question?.prompt}</p>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: `repeat(${state.teams.length}, minmax(0, 1fr))` }}>
         {state.teams.map((t) => (
           <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 text-center backdrop-blur-xl">
             <div className="display text-base" style={{ color: t.color }}>

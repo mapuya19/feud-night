@@ -25,7 +25,7 @@ function join(s: GameState, id: string, name: string, teamId: string, claimCapta
 }
 
 function setup(): GameState {
-  const s = createGame("TEST", "tok", QUESTIONS);
+  const s = createGame("TEST", "tok", QUESTIONS, 4);
   join(s, "p1", "Alice", "blue", true);
   join(s, "p2", "Bob", "red", true);
   join(s, "p3", "Cara", "gold", true);
@@ -56,7 +56,7 @@ describe("lobby", () => {
   });
 
   it("requires every team to have a player and captain before locking the roster", () => {
-    const s = createGame("TEST", "tok", QUESTIONS);
+    const s = createGame("TEST", "tok", QUESTIONS, 4);
     join(s, "p1", "Alice", "blue", true);
     join(s, "p2", "Bob", "red", true);
     join(s, "p3", "Cara", "gold", true);
@@ -69,12 +69,13 @@ describe("lobby", () => {
   });
 
   it("enforces per-team and room capacity derived from the team count", () => {
-    const s = createGame("TEST", "tok", QUESTIONS);
+    const s = createGame("TEST", "tok", QUESTIONS, 4);
     for (let i = 0; i < MAX_TEAM_PLAYERS; i++) {
       join(s, `blue-${i}`, `Blue ${i}`, "blue");
     }
     expect(joinPlayer(s, "one-too-many", "Extra", "blue", false).ok).toBe(false);
-    expect(Object.keys(s.teams).length * MAX_TEAM_PLAYERS).toBe(MAX_TEAMS * MAX_TEAM_PLAYERS);
+    expect(Object.keys(s.teams).length * MAX_TEAM_PLAYERS).toBe(32);
+    expect(MAX_TEAMS * MAX_TEAM_PLAYERS).toBe(40); // 5-team ceiling
   });
 
   it("scales capacity down when the host lowers the team count in the lobby", () => {
@@ -105,6 +106,7 @@ describe("lobby", () => {
     // out-of-range requests clamp into the supported range instead of erroring
     expect(applyHostAction(s, { type: "set_team_count", count: 99 }).ok).toBe(true);
     expect(Object.keys(s.teams).length).toBe(MAX_TEAMS);
+    expect(s.teams.emerald.id).toBe("emerald"); // fifth team materializes on demand
     expect(applyHostAction(s, { type: "set_team_count", count: 1 }).ok).toBe(true);
     expect(Object.keys(s.teams).length).toBe(MIN_TEAMS);
     applyHostAction(s, { type: "start_game" });

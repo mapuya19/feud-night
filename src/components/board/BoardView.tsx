@@ -39,7 +39,7 @@ function Splash({ text }: { text: string }) {
 function Scoreboard({ state }: { state: PublicState }) {
   const cols = state.teams.length;
   return (
-    <div className={cn("grid gap-3", cols === 2 ? "grid-cols-2" : cols === 3 ? "grid-cols-3" : "grid-cols-4")}>
+    <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {state.teams.map((t: PublicTeam) => (
         <div
           key={t.id}
@@ -101,7 +101,10 @@ function LobbyBoard({ state }: { state: PublicState }) {
           <span className="mt-3 text-sm text-white/50">{state.teams.reduce((n, t) => n + t.playerCount, 0)} players in</span>
         </div>
       </div>
-      <div className={cn("grid w-full max-w-4xl gap-3", state.teams.length === 4 ? "grid-cols-2 xl:grid-cols-4" : state.teams.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
+      <div
+        className="grid w-full max-w-4xl gap-3"
+        style={{ gridTemplateColumns: `repeat(${Math.min(state.teams.length, 3)}, minmax(0, 1fr))` }}
+      >
         {state.teams.map((t) => (
           <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4 text-center">
             <div className="display text-xl" style={{ color: t.color }}>
