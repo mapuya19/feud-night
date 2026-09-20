@@ -3,10 +3,10 @@
     "id": "asian-household-kitchen",
     "prompt": "Name something every Asian (American) household has in the kitchen.",
     "answers": [
-      { "text": "Rice Cooker", "points": 26 },
-      { "text": "Saved Takeout Containers", "points": 20 },
-      { "text": "Plastic Bags Full of Plastic Bags", "points": 16 },
-      { "text": "Soy Sauce", "points": 14 },
+      { "text": "Rice cooker", "points": 26 },
+      { "text": "Saved takeout containers", "points": 20 },
+      { "text": "Plastic bags full of plastic bags", "points": 16 },
+      { "text": "Soy sauce", "points": 14 },
       { "text": "Unopened/unused condiment packs", "points": 10 },
       { "text": "Instant noodles", "points": 8 },
       { "text": "Chopsticks", "points": 6 }
@@ -40,7 +40,7 @@
   },
   {
     "id": "top-streamed-kpop-spotify-2026",
-    "prompt": "Namethe most-streamed K-pop groups on Spotify in 2026 so far.",
+    "prompt": "Name the most-streamed K-pop groups on Spotify in 2026 so far.",
     "answers": [
       { "text": "BTS", "points": 30 },
       { "text": "Stray Kids", "points": 20 },
@@ -58,8 +58,8 @@
       { "text": "Cafe Panna", "points": 22 },
       { "text": "Rok Matcha", "points": 20 },
       { "text": "Banh Anh Em", "points": 16 },
-      { "text": "Any Froyo Spot", "points": 14 },
-      { "text": "Knicks/World Cup Watch Party Venues", "points": 11 },
+      { "text": "Any froyo spot", "points": 14 },
+      { "text": "Knicks/World Cup watch party venues", "points": 11 },
       { "text": "Radio Bakery", "points": 10 },
       { "text": "Lucinda's", "points": 7 }
     ]
@@ -68,25 +68,25 @@
     "id": "running-hobby-gear",
     "prompt": "Name gear someone gets as they get into running.",
     "answers": [
-      { "text": "Running Shoes", "points": 28 },
-      { "text": "GPS Watch", "points": 19 },
-      { "text": "Running Belt or Vest", "points": 15 },
-      { "text": "Hydration Flask", "points": 12 },
-      { "text": "Wireless Earbuds", "points": 10 },
-      { "text": "Technical Socks", "points": 9 },
-      { "text": "Energy Gels", "points": 7 }
+      { "text": "Running shoes", "points": 28 },
+      { "text": "GPS watch", "points": 19 },
+      { "text": "Running belt or vest", "points": 15 },
+      { "text": "Hydration flask", "points": 12 },
+      { "text": "Wireless earbuds", "points": 10 },
+      { "text": "Technical socks", "points": 9 },
+      { "text": "Energy gels", "points": 7 }
     ]
   },
   {
     "id": "travel-forget",
     "prompt": "Name something people forget when preparing to travel.",
     "answers": [
-      { "text": "Phone Charger", "points": 26 },
+      { "text": "Phone charger", "points": 26 },
       { "text": "Toothbrush / toothpaste", "points": 19 },
       { "text": "Visa requirements", "points": 15 },
-      { "text": "Passport/ID (Expiration)", "points": 14 },
+      { "text": "Passport/ID (expiration)", "points": 14 },
       { "text": "Medication", "points": 11 },
-      { "text": "Travel Adapter", "points": 8 },
+      { "text": "Travel adapter", "points": 8 },
       { "text": "", "points": 7 }
     ]
   },
@@ -94,18 +94,18 @@
     "id": "bad-first-impression",
     "prompt": "Name something that makes a bad first impression.",
     "answers": [
-      { "text": "Being Late", "points": 25 },
-      { "text": "Being Rude to Staff", "points": 19 },
-      { "text": "Bad Breath or Body Odor", "points": 16 },
-      { "text": "Talking Only About Yourself", "points": 14 },
-      { "text": "Being on Your Phone", "points": 11 },
-      { "text": "Not Making Eye Contact", "points": 8 },
-      { "text": "Not Introducing Yourself", "points": 7 }
+      { "text": "Being late", "points": 25 },
+      { "text": "Being rude to staff", "points": 19 },
+      { "text": "Bad breath or body odor", "points": 16 },
+      { "text": "Talking only about yourself", "points": 14 },
+      { "text": "Being on your phone", "points": 11 },
+      { "text": "Not making eye contact", "points": 8 },
+      { "text": "Not introducing yourself", "points": 7 }
     ]
   },
   {
     "id": "apuya-fixations",
-    "prompt": "Name Apuya's fixations/hobbies in 2026",
+    "prompt": "Name Apuya's fixations/hobbies in 2026.",
     "answers": [
       { "text": "AMC A-List / Watching movies", "points": 25 },
       { "text": "Laundry", "points": 19 },
@@ -113,7 +113,46 @@
       { "text": "Running / NYCM 9+1", "points": 14 },
       { "text": "Roblox", "points": 11 },
       { "text": "Fashion / vintage clothing", "points": 8 },
-      { "text": "AI at Work/Coding", "points": 7 }
+      { "text": "AI at work/coding", "points": 7 }
+    ]
+  },
+  {
+    "id": "things-people-say-when-late",
+    "prompt": "Name something someone says when they're running late.",
+    "answers": [
+      { "text": "I'm 5 minutes away", "points": 28 },
+      { "text": "I'm leaving right now", "points": 20 },
+      { "text": "Subway delayed", "points": 16 },
+      { "text": "Missed my train", "points": 12 },
+      { "text": "Work/meeting ran late", "points": 10 },
+      { "text": "I lost track of time", "points": 8 },
+      { "text": "Sorry, sorry, sorry", "points": 6 }
+    ]
+  },
+  {
+    "id": "clean-before-guests",
+    "prompt": "Name something you only clean when someone is coming over.",
+    "answers": [
+      { "text": "The bathroom / toilet", "points": 23 },
+      { "text": "The floor", "points": 18 },
+      { "text": "The kitchen sink", "points": 16 },
+      { "text": "The couch cushions", "points": 13 },
+      { "text": "Random clutter you hide in a closet", "points": 12 },
+      { "text": "The mirror", "points": 10 },
+      { "text": "The entire apartment in 15 minutes", "points": 8 }
+    ]
+  },
+  {
+    "id": "leave-party",
+    "prompt": "Name something you do when you're trying to leave a party.",
+    "answers": [
+      { "text": "Say goodbye to the host", "points": 22 },
+      { "text": "Mention how long you've been up", "points": 20 },
+      { "text": "Pretend you have an early morning tomorrow", "points": 16 },
+      { "text": "Find your friends first", "points": 14 },
+      { "text": "Order an Uber", "points": 11 },
+      { "text": "Map the train ride home", "points": 10 },
+      { "text": "Look for your coat / bag", "points": 7 }
     ]
   }
 ]

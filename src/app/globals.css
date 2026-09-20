@@ -221,6 +221,21 @@ body {
   font-size: clamp(3rem, 6vw, 7rem);
 }
 
+/* Projectors and laptop displays can be much shorter than a wall-mounted TV.
+   Keep every 6–8-slot board visible without clipping the answer text. */
+@media (max-height: 800px) {
+  .tv-stage {
+    gap: clamp(0.45rem, 1.2vh, 0.8rem);
+    padding: clamp(0.7rem, 1.5vw, 1.25rem);
+  }
+  .tv-question {
+    font-size: clamp(1.3rem, 2.4vw, 2.5rem);
+  }
+  .tv-slot-text {
+    font-size: clamp(0.9rem, 1.55vw, 1.6rem);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

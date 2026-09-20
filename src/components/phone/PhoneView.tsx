@@ -580,11 +580,11 @@ function MiniBoard({ state }: { state: PublicState }) {
           <div
             key={i}
             className={cn(
-              "flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+              "flex items-start justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs",
               s.revealed ? "bg-blue-600/80 text-white" : "bg-white/[0.06] text-white/25",
             )}
           >
-            <span className="display truncate">{s.revealed ? s.text : i + 1}</span>
+            <span className="display min-w-0 break-words leading-tight">{s.revealed ? s.text : i + 1}</span>
             <span className="display shrink-0 tabular-nums">{s.points}</span>
           </div>
         ))}
