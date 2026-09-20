@@ -1,32 +1,136 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFeud } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { Countdown, CountdownBar, PHASE_LABEL } from "@/components/ui";
+import { isMusicOn, isSfxOn, playSfx, syncMusic, toggleMusic, toggleSfx, unlockSfx } from "@/lib/sfx";
 import type { PublicSlot, PublicState, PublicTeam } from "@shared/projection";
 
 export function BoardView() {
   const { state, status, lastError } = useFeud();
-  if (!state) return <Splash text={status === "error" ? lastError ?? "This room is no longer available." : "Connecting…"} />;
-  switch (state.phase) {
-    case "lobby":
-      return <LobbyBoard state={state} />;
-    case "faceoff":
-    case "faceoff_answer":
-    case "playing":
-    case "steal":
-    case "steal_reveal":
-    case "steal_tiebreak":
-    case "steal_tiebreak_reveal":
-    case "round_over":
-      return <RoundBoard state={state} />;
-    case "game_over":
-      return <GameOver state={state} />;
-    default:
-      return <Splash text={PHASE_LABEL[state.phase] ?? ""} />;
-  }
+  useBoardSfx(state);
+  const main = (() => {
+    if (!state) return <Splash text={status === "error" ? lastError ?? "This room is no longer available." : "Connecting…"} />;
+    switch (state.phase) {
+      case "lobby":
+        return <LobbyBoard state={state} />;
+      case "faceoff":
+      case "faceoff_answer":
+      case "playing":
+      case "steal":
+      case "steal_reveal":
+      case "steal_tiebreak":
+      case "steal_tiebreak_reveal":
+      case "round_over":
+        return <RoundBoard state={state} />;
+      case "game_over":
+        return <GameOver state={state} />;
+      default:
+        return <Splash text={PHASE_LABEL[state.phase] ?? ""} />;
+    }
+  })();
+  return (
+    <>
+      {main}
+      <SoundControls />
+    </>
+  );
+}
+
+/** The TV is the room's speaker: react to game transitions, not raw pushes. */
+function useBoardSfx(state: PublicState | null) {
+  const prev = useRef<PublicState | null>(null);
+  useEffect(() => {
+    syncMusic();
+    const unlock = () => unlockSfx();
+    document.addEventListener("pointerdown", unlock, { once: true });
+    return () => document.removeEventListener("pointerdown", unlock);
+  }, []);
+  useEffect(() => {
+    if (!state) return;
+    const p = prev.current;
+    prev.current = state;
+    if (!p) return;
+
+    const revealedCount = (s: PublicState) => s.question?.slots.filter((slot) => slot.revealed).length ?? 0;
+    if (state.strikes > p.strikes) {
+      playSfx("strike");
+    } else if (
+      (state.phase === "playing" || state.phase === "faceoff_answer") &&
+      revealedCount(state) > revealedCount(p)
+    ) {
+      playSfx("correct");
+    }
+
+    if (state.phase === p.phase) return;
+    // A wiped face-off attempt (miss or timeout) gets the sad trombone-ish cue.
+    if (p.phase === "faceoff_answer" && state.phase === "faceoff") {
+      playSfx("miss");
+      return;
+    }
+    switch (state.phase) {
+      case "faceoff_answer":
+        playSfx("buzz-in");
+        break;
+      case "playing":
+      case "steal_reveal":
+      case "steal_tiebreak":
+      case "steal_tiebreak_reveal":
+        playSfx("whoosh");
+        break;
+      case "steal":
+        // The third strike already honked; earlier strikes get the suspense swell.
+        if (state.strikes === p.strikes) playSfx("steal");
+        break;
+      case "round_over":
+        playSfx("fanfare");
+        break;
+      case "game_over":
+        playSfx("applause");
+        break;
+    }
+  }, [state]);
+}
+
+function SoundControls() {
+  const [sfxOn, setSfxOn] = useState(isSfxOn);
+  const [musicOn, setMusicOn] = useState(isMusicOn);
+  return (
+    <div className="fixed right-3 top-3 z-50 flex gap-2">
+      <button
+        type="button"
+        aria-pressed={sfxOn}
+        title={sfxOn ? "Sound effects on" : "Sound effects off"}
+        onClick={() => {
+          unlockSfx();
+          const next = toggleSfx();
+          setSfxOn(next);
+          if (next) playSfx("buzz-in");
+        }}
+        className={cn(
+          "rounded-full border px-3 py-2 text-lg leading-none backdrop-blur transition",
+          sfxOn ? "border-white/25 bg-black/40 opacity-100 hover:bg-white/10" : "border-white/10 bg-black/40 opacity-40 hover:opacity-70",
+        )}
+      >
+        {sfxOn ? "🔊" : "🔇"}
+      </button>
+      <button
+        type="button"
+        aria-pressed={musicOn}
+        title={musicOn ? "Background music on" : "Background music off"}
+        onClick={() => setMusicOn(toggleMusic())}
+        className={cn(
+          "rounded-full border px-3 py-2 text-lg leading-none backdrop-blur transition",
+          musicOn ? "border-gold/50 bg-gold/15 hover:bg-gold/25" : "border-white/10 bg-black/40 opacity-40 hover:opacity-70",
+        )}
+      >
+        🎵
+      </button>
+    </div>
+  );
 }
 
 function Splash({ text }: { text: string }) {
