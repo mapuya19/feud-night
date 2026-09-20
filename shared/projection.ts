@@ -1,4 +1,4 @@
-import { ROUND_MULTIPLIERS } from "./config";
+import { ANSWER_DURATION_MS, ROUND_MULTIPLIERS } from "./config";
 import { bank } from "./engine";
 import type { GameState, Role } from "./types";
 
@@ -42,6 +42,14 @@ export interface PublicSteal {
   results: { teamId: string; text: string; matched: boolean; matchedText: string | null }[] | null;
 }
 
+export interface PublicAnswerer {
+  name: string;
+  position: number; // 1-based spot in the line
+  lineLength: number; // team size
+  endsAt: number | null; // null once the answer is in (awaiting host judgment)
+  durationMs: number;
+}
+
 export interface PublicState {
   code: string;
   phase: GameState["phase"];
@@ -60,8 +68,9 @@ export interface PublicState {
   question: { prompt: string | null; slots: PublicSlot[]; bank: number } | null;
   strikes: number;
   buzzWinnerName: string | null;
+  answerer: PublicAnswerer | null; // who's giving the official answer right now
+  myIsAnswerer: boolean; // for player viewers — it's your turn
   pendingAnswer: { text: string; byName: string } | null; // host + controlling team
-  suggestions: { text: string; byName: string }[]; // host + controlling team
   steal: PublicSteal | null;
   lastAward: { teamId: string; teamName: string; points: number; reason: string } | null;
   winnerTeamId: string | null;
@@ -154,16 +163,26 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     question,
     strikes: state.strikes,
     buzzWinnerName: state.buzzWinnerId ? state.players[state.buzzWinnerId]?.name ?? null : null,
+    answerer: (() => {
+      if (state.phase !== "playing" || !state.answererId || !state.controllingTeamId) return null;
+      const up = state.players[state.answererId];
+      const team = state.teams[state.controllingTeamId];
+      if (!up || !team) return null;
+      return {
+        name: up.name,
+        position: team.players.indexOf(state.answererId) + 1,
+        lineLength: team.players.length,
+        endsAt: state.timer?.kind === "answer" ? state.timer.endsAt : null,
+        durationMs: state.timer?.kind === "answer" ? state.timer.durationMs : ANSWER_DURATION_MS,
+      };
+    })(),
+    myIsAnswerer: !!state.answererId && state.answererId === viewer.playerId,
     pendingAnswer:
       viewer.isHost || isControllingTeam
         ? state.pendingAnswer
           ? { text: state.pendingAnswer.text, byName: state.pendingAnswer.byName }
           : null
         : null,
-    suggestions:
-      viewer.isHost || isControllingTeam
-        ? state.suggestions.map((s) => ({ text: s.text, byName: s.byName }))
-        : [],
     steal,
     lastAward: state.lastAward
       ? {

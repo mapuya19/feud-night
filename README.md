@@ -21,9 +21,10 @@ steal. The host can change either role from the private console.
 
 1. **Face-off** — one rep per team. First to hit the giant BUZZ button on
    their phone takes control (server-side race, ~100ms resolution).
-2. **Playing** — the controlling team's players submit answer suggestions
-   from their phones; the **captain** locks the official answer. The host
-   judges it against the board: reveal or strike.
+2. **Playing** — answers go **down the line**: one player at a time, starting
+   with the buzz winner, gets 10 seconds to send the official answer from
+   their phone. The host judges it against the board: reveal or strike. A
+   timeout counts as a strike and the mic passes on.
 3. **Steal** — after 3 strikes, all opposing teams get a 15-second huddle.
    Each **captain secretly submits one steal answer** from their phone.
    Answers reveal simultaneously on the TV; the host judges each. **If multiple
@@ -50,7 +51,7 @@ Same pattern as [themindgame](https://github.com/mapuya19/themindgame):
 │   │   ├── page.tsx          # landing: host / join / board
 │   │   ├── host/             # host console (judging, controls, roster)
 │   │   ├── board/            # TV/projector game-show view
-│   │   └── play/             # phone controller (buzz, suggest, steal…)
+│   │   └── play/             # phone controller (buzz, answer, steal…)
 │   ├── components/           # board / phone / host UIs (Tailwind v4, framer-motion)
 │   └── lib/                  # ws-client (reconnect+backoff), zustand store, identity
 ├── shared/                   # imported by BOTH Next.js and the worker

@@ -162,22 +162,38 @@ describe("faceoff", () => {
 });
 
 describe("answers & scoring", () => {
-  it("captain locks, host reveals, bank awarded on clear", () => {
+  it("the up player answers down the line; host reveals, bank awarded on clear", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
     applyPlayerAction(s, "p1", { type: "buzz" });
-    expect(applyPlayerAction(s, "p5", { type: "suggest", text: "alpha maybe" }).ok).toBe(true); // teammate
-    expect(applyPlayerAction(s, "p2", { type: "suggest", text: "nope" }).ok).toBe(false); // other team
-    expect(applyPlayerAction(s, "p5", { type: "lock_answer", text: "A1" }).ok).toBe(false); // not captain
-    expect(applyPlayerAction(s, "p1", { type: "lock_answer", text: "A1" }).ok).toBe(true);
+    expect(s.answererId).toBe("p1"); // buzz winner gives the first official answer
+    expect(s.timer?.kind).toBe("answer");
+    expect(applyPlayerAction(s, "p5", { type: "submit_answer", text: "A1" }).ok).toBe(false); // not your turn
+    expect(applyPlayerAction(s, "p2", { type: "submit_answer", text: "nope" }).ok).toBe(false); // other team
+    expect(applyPlayerAction(s, "p1", { type: "submit_answer", text: "A1" }).ok).toBe(true);
     expect(s.pendingAnswer?.text).toBe("A1");
-    expect(applyHostAction(s, { type: "reveal_answer", slot: 0 }).ok).toBe(true);
+    expect(s.timer).toBeNull(); // answered in time — host judges whenever
+    applyHostAction(s, { type: "reveal_answer", slot: 0 });
     expect(s.revealed[0]).toBe(true);
     expect(s.pendingAnswer).toBeNull();
+    expect(s.answererId).toBe("p5"); // down the line
     clearBoard(s);
     expect(s.phase).toBe("round_over");
     expect(s.teams.diamond.score).toBe(qsum(s.question!)); // all answers, ×1
     expect(s.lastAward?.reason).toBe("clear");
+  });
+
+  it("answer timeout is a strike and passes the mic to the next player in line", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    expect(expireTimer(s)).toBe(true); // p1 runs out the clock
+    expect(s.strikes).toBe(1);
+    expect(s.answererId).toBe("p5"); // next down the line
+    expect(expireTimer(s)).toBe(true);
+    expect(expireTimer(s)).toBe(true);
+    expect(s.strikes).toBe(3);
+    expect(s.phase).toBe("steal");
   });
 
   it("rounds 3-4 are double points", () => {

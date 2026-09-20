@@ -17,6 +17,7 @@ export type HostAction =
   | { type: "start_faceoff" } // re-run faceoff for same round (e.g. buzz dispute)
   | { type: "reveal_answer"; slot: number }
   | { type: "strike" }
+  | { type: "skip_answerer" } // advance to the next player in line (e.g. someone AFK)
   | { type: "skip_question" }
   | { type: "next_round" }
   | { type: "resolve_steal"; marks: { teamId: string; slot: number | null }[] }
@@ -34,8 +35,7 @@ export type PlayerAction =
   | { type: "claim_captain" }
   | { type: "release_captain" }
   | { type: "buzz" }
-  | { type: "suggest"; text: string }
-  | { type: "lock_answer"; text: string }
+  | { type: "submit_answer"; text: string } // official answer — only the player who is up
   | { type: "submit_steal"; text: string };
 
 /** Worker → Client. */

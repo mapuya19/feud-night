@@ -172,8 +172,8 @@ export default function Home() {
           <p>
             <span className="label mb-2 block text-neon">Space</span>
             Only one rep per team ever needs to stand up. Everyone else plays
-            from their seats — suggestions, steals and scoring all happen on
-            phones and the TV.
+            from their seats — answers go down the line with a 10-second shot
+            clock, and steals and scoring all happen on phones and the TV.
           </p>
           <p>
             <span className="label mb-2 block text-bubble">Scale</span>

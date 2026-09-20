@@ -52,7 +52,7 @@ export interface StealSubmission {
 }
 
 export interface Timer {
-  kind: "steal";
+  kind: "steal" | "answer";
   endsAt: number; // epoch ms (server clock)
   durationMs: number;
 }
@@ -75,8 +75,8 @@ export interface GameState {
   strikes: number;
   controllingTeamId: string | null;
   buzzWinnerId: string | null;
-  suggestions: Suggestion[];
-  pendingAnswer: Suggestion | null; // captain's locked-in answer awaiting host judgment
+  answererId: string | null; // who's giving the official answer (down the line)
+  pendingAnswer: Suggestion | null; // official answer awaiting host judgment
   steal: {
     submissions: StealSubmission[];
     results: { teamId: string; text: string; slot: number | null }[] | null;

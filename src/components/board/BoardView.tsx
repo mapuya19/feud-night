@@ -224,7 +224,10 @@ function RoundBoard({ state }: { state: PublicState }) {
               className="display text-2xl"
               style={{ color: controlling?.color }}
             >
-              {controlling?.name} HAS CONTROL · KEEP GUESSING UNTIL 3 ✕
+              {controlling?.name.toUpperCase()} IN CONTROL · UP NOW: {state.answerer?.name ?? "—"}
+              {state.answerer?.endsAt && (
+                <Countdown endsAt={state.answerer.endsAt} offsetMs={serverOffsetMs} className="ml-3 text-white/80" />
+              )}
             </motion.div>
           )}
           {state.phase === "steal" && state.steal && (

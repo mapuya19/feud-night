@@ -291,10 +291,9 @@ function FaceoffPanel({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- playing
 
 function PlayingPanel({ state }: { state: PublicState }) {
-  const { playerAction } = useFeud();
+  const { serverOffsetMs } = useFeud();
   const myTeam = useTeam();
   const isMyTeam = !!myTeam?.isControlling;
-  const isCaptain = state.myIsCaptain;
 
   if (!isMyTeam) {
     return (
@@ -303,7 +302,11 @@ function PlayingPanel({ state }: { state: PublicState }) {
           <span className="display text-xl" style={{ color: state.teams.find((t) => t.isControlling)?.color }}>
             {state.teams.find((t) => t.isControlling)?.name} has control
           </span>
-          <span className="text-sm text-white/40">Watch the board — your steal could be next.</span>
+          {state.answerer && (
+            <span className="text-sm text-white/40">
+              🎤 {state.answerer.name} is answering — watch the board, your steal could be next.
+            </span>
+          )}
         </div>
       </Centered>
     );
@@ -315,79 +318,40 @@ function PlayingPanel({ state }: { state: PublicState }) {
         YOUR TEAM IS UP · {state.strikes} strike{state.strikes === 1 ? "" : "s"}
       </div>
 
-      <p className="text-center text-sm text-white/50">Everyone sends suggestions. Your captain chooses one official answer for the host.</p>
+      <p className="text-center text-sm text-white/50">
+        Answers go down the line — one player at a time, no coaching. Speak up when it&apos;s yours!
+      </p>
 
-      <SuggestBox />
-
-      {state.suggestions.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-widest text-white/40">team suggestions</span>
-          <div className="flex flex-wrap gap-2">
-            {state.suggestions.map((s, i) => (
-              <span key={i} className="rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-sm text-white/80">
-                “{s.text}” <span className="text-white/35">— {s.byName}</span>
-              </span>
-            ))}
-          </div>
+      {state.answerer && !state.myIsAnswerer && (
+        <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-4">
+          <span className="display text-2xl text-white/85">🎤 {state.answerer.name} is up</span>
+          <span className="text-sm text-white/40">
+            you&apos;re #{Math.min(state.answerer.position, state.answerer.lineLength)} of {state.answerer.lineLength} in line
+          </span>
+          {state.answerer.endsAt && (
+            <Countdown endsAt={state.answerer.endsAt} offsetMs={serverOffsetMs} className="text-lg text-gold" />
+          )}
         </div>
       )}
 
-      {isCaptain && <CaptainLock />}
+      {state.myIsAnswerer ? <AnswererPad /> : null}
     </div>
   );
 }
 // ---------------------------------------------------------------- playing
 
-function SuggestBox() {
-  const { playerAction } = useFeud();
-  const [text, setText] = useState("");
-  const [sent, setSent] = useState<string | null>(null);
-  return (
-    <form
-      className="flex gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!text.trim()) return;
-        playerAction({ type: "suggest", text });
-        setSent(text.trim());
-        setText("");
-      }}
-    >
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        maxLength={60}
-        placeholder="Shout an answer here…"
-        autoCapitalize="sentences"
-        enterKeyHint="send"
-        className="field min-w-0 flex-1"
-      />
-      <Button variant="primary" type="submit" disabled={!text.trim()}>
-        Send
-      </Button>
-      {sent && <span className="sr-only">sent</span>}
-    </form>
-  );
-}
-
-function CaptainLock() {
+function AnswererPad() {
   const { state, playerAction } = useFeud();
   const [text, setText] = useState("");
   const pending = state?.pendingAnswer;
+  const answerer = state?.answerer;
+  if (!state) return null;
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-neon/40 bg-neon/5 p-3">
-      <span className="text-xs uppercase tracking-widest text-neon">👑 captain — lock the official answer</span>
-      {state?.suggestions && state.suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {state.suggestions.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => setText(s.text)}
-              className="display min-h-11 touch-manipulation rounded-full border border-white/10 bg-white/[0.045] backdrop-blur-xl px-3 py-1.5 text-xs text-white/80 active:scale-95"
-            >
-              {s.text}
-            </button>
-          ))}
+      <span className="text-xs uppercase tracking-widest text-neon">🎤 you&apos;re up — give the official answer</span>
+      {answerer?.endsAt && (
+        <div className="display text-center text-3xl text-gold">
+          <Countdown endsAt={answerer.endsAt} offsetMs={0} />
         </div>
       )}
       <form
@@ -395,20 +359,22 @@ function CaptainLock() {
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
-          playerAction({ type: "lock_answer", text });
+          playerAction({ type: "submit_answer", text });
+          setText("");
         }}
       >
         <input
           value={pending ? pending.text : text}
           onChange={(e) => setText(e.target.value)}
           maxLength={60}
-          placeholder="Final answer…"
+          placeholder="Your answer…"
           autoCapitalize="sentences"
           enterKeyHint="send"
+          aria-label="Official answer"
           className="field min-w-0 flex-1 font-semibold focus:border-neon/70 focus:ring-neon/25"
         />
         <Button variant="gold" type="submit" disabled={!text.trim() && !pending}>
-          Lock it
+          Send it
         </Button>
       </form>
       {pending && <span role="status" className="text-center text-xs text-white/40">“{pending.text}” is in — awaiting host…</span>}

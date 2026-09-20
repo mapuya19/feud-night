@@ -1,6 +1,7 @@
 import {
   ROUND_MULTIPLIERS,
   STEAL_DURATION_MS,
+  ANSWER_DURATION_MS,
   STRIKES_TO_STEAL,
   TEAM_DEFAULTS,
   MAX_ANSWER_LENGTH,
@@ -56,7 +57,7 @@ export function createGame(
     strikes: 0,
     controllingTeamId: null,
     buzzWinnerId: null,
-    suggestions: [],
+    answererId: null,
     pendingAnswer: null,
     steal: null,
     timer: null,
@@ -111,6 +112,10 @@ function movePlayerToTeam(state: GameState, playerId: string, teamId: string): E
 export function setConnected(state: GameState, playerId: string, connected: boolean): void {
   const p = state.players[playerId];
   if (p && p.connected !== connected) p.connected = connected;
+  // Don't let the game stall on a disconnected answerer.
+  if (p && !connected && state.phase === "playing" && state.answererId === playerId) {
+    advanceAnswerer(state);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +138,28 @@ function clearTimer(state: GameState): void {
   state.timer = null;
 }
 
+/** The controlling team answers down the line; advance and restart the answer clock. */
+function advanceAnswerer(state: GameState): void {
+  const team = state.controllingTeamId ? state.teams[state.controllingTeamId] : null;
+  if (!team || team.players.length === 0) {
+    state.answererId = null;
+    clearTimer(state);
+    return;
+  }
+  const cur = state.answererId ? team.players.indexOf(state.answererId) : -1;
+  state.answererId = team.players[(cur + 1) % team.players.length];
+  state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
+}
+
+/** Three strikes: every opposing captain huddles for one secret steal answer. */
+function beginSteal(state: GameState): void {
+  state.phase = "steal";
+  state.steal = { submissions: [], results: null };
+  state.answererId = null;
+  state.pendingAnswer = null;
+  state.timer = { kind: "steal", endsAt: Date.now() + STEAL_DURATION_MS, durationMs: STEAL_DURATION_MS };
+}
+
 /** Pick the next question from the pool (cycles if exhausted) and reset per-question state. */
 function loadNextQuestion(state: GameState): void {
   if (state.questionPool.length === 0) return;
@@ -141,8 +168,8 @@ function loadNextQuestion(state: GameState): void {
   state.question = q;
   state.revealed = q.answers.map(() => false);
   state.strikes = 0;
-  state.suggestions = [];
   state.pendingAnswer = null;
+  state.answererId = null;
   state.steal = null;
   clearTimer(state);
 }
@@ -198,7 +225,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       state.phase = "faceoff";
       state.controllingTeamId = null;
       state.buzzWinnerId = null;
-      state.suggestions = [];
+      state.answererId = null;
       state.pendingAnswer = null;
       clearTimer(state);
       return ok;
@@ -211,11 +238,11 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       if (state.revealed[slot]) return fail("Already revealed");
       state.revealed[slot] = true;
       state.pendingAnswer = null;
-      state.suggestions = [];
       if (state.revealed.every(Boolean)) {
         const winner = state.controllingTeamId;
         if (winner) return awardBank(state, winner, "clear");
       }
+      advanceAnswerer(state); // next player down the line
       return ok;
     }
 
@@ -223,16 +250,18 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       if (state.phase !== "playing") return fail("Not in answering phase");
       state.strikes++;
       state.pendingAnswer = null;
-      state.suggestions = [];
       if (state.strikes >= STRIKES_TO_STEAL) {
-        state.phase = "steal";
-        state.steal = { submissions: [], results: null };
-        state.timer = {
-          kind: "steal",
-          endsAt: Date.now() + STEAL_DURATION_MS,
-          durationMs: STEAL_DURATION_MS,
-        };
+        beginSteal(state);
+      } else {
+        advanceAnswerer(state);
       }
+      return ok;
+    }
+
+    case "skip_answerer": {
+      if (state.phase !== "playing") return fail("Not in answering phase");
+      state.pendingAnswer = null;
+      advanceAnswerer(state);
       return ok;
     }
 
@@ -240,6 +269,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       if (state.phase !== "faceoff" && state.phase !== "playing") return fail("No active question");
       state.controllingTeamId = null;
       state.buzzWinnerId = null;
+      state.answererId = null;
       state.lastAward = null;
       loadNextQuestion(state);
       assignReps(state);
@@ -397,32 +427,23 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
       state.controllingTeamId = team.id;
       state.buzzWinnerId = playerId;
       state.phase = "playing";
+      // The buzz winner gives the first official answer; then down the line.
+      state.answererId = playerId;
+      state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
       return ok;
     }
 
-    case "suggest": {
+    case "submit_answer": {
       if (state.phase !== "playing") return fail("Not answering right now");
       if (state.controllingTeamId !== team.id) return fail("Not your team's turn");
-      const text = action.text.trim().slice(0, MAX_ANSWER_LENGTH);
-      if (!text) return fail("Empty answer");
-      const existing = state.suggestions.find((s) => s.by === playerId);
-      if (existing) {
-        // players may revise their one live suggestion
-        existing.text = text;
-        existing.at = Date.now();
-      } else {
-        state.suggestions.push({ text, by: playerId, byName: player.name, at: Date.now() });
+      if (state.answererId !== playerId) {
+        const up = state.answererId ? state.players[state.answererId]?.name : null;
+        return fail(up ? `It's ${up}'s turn — answers go down the line` : "No answerer is up");
       }
-      return ok;
-    }
-
-    case "lock_answer": {
-      if (state.phase !== "playing") return fail("Not answering right now");
-      if (state.controllingTeamId !== team.id) return fail("Not your team's turn");
-      if (team.captainId !== playerId) return fail("Only the captain locks answers");
       const text = action.text.trim().slice(0, MAX_ANSWER_LENGTH);
       if (!text) return fail("Empty answer");
       state.pendingAnswer = { text, by: playerId, byName: player.name, at: Date.now() };
+      clearTimer(state); // answered in time — host now judges
       return ok;
     }
 
@@ -465,6 +486,18 @@ export function expireTimer(state: GameState): boolean {
   if (kind === "steal") {
     if (state.phase !== "steal" || !state.steal) return false;
     state.phase = "steal_reveal";
+    return true;
+  }
+  if (kind === "answer") {
+    if (state.phase !== "playing") return false;
+    // Out of time without an official answer — that's a strike, keep the line moving.
+    state.strikes++;
+    state.pendingAnswer = null;
+    if (state.strikes >= STRIKES_TO_STEAL) {
+      beginSteal(state);
+    } else {
+      advanceAnswerer(state);
+    }
     return true;
   }
   return false;

@@ -9,6 +9,9 @@ export const STRIKES_TO_STEAL = 3;
 /** Huddle time for simultaneous steals, ms. */
 export const STEAL_DURATION_MS = 15_000;
 
+/** Down-the-line answering: the up player has this long to give the official answer. */
+export const ANSWER_DURATION_MS = 10_000;
+
 /** Team palette and order (top→bottom on screens). A room uses the first N (2–5). */
 export const TEAM_DEFAULTS = [
   { id: "diamond", name: "Team Diamond", color: "#38bdf8" }, // Pokémon Diamond — cyan blue

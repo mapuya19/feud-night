@@ -290,13 +290,24 @@ function FaceoffHost({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- playing
 
 function PlayingHost({ state }: { state: PublicState }) {
-  const { hostAction } = useFeud();
+  const { hostAction, serverOffsetMs } = useFeud();
   const pending = state.pendingAnswer;
+  const answerer = state.answerer;
   const unrevealed = state.question?.slots.map((s, i) => ({ s, i })).filter(({ s }) => !s.revealed) ?? [];
   return (
     <section className="host-panel flex flex-col gap-5">
       <h2 className="display text-2xl text-white sm:text-3xl">⚖️ Judge the answer</h2>
       <p className="max-w-4xl text-lg leading-snug text-white/65">{state.question?.prompt}</p>
+
+      {answerer && (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-3">
+          <span className="display text-xl text-white/85">🎤 Up now: {answerer.name}</span>
+          <span className="text-sm text-white/40">
+            {answerer.position} of {answerer.lineLength} in line
+          </span>
+          {answerer.endsAt && <Countdown endsAt={answerer.endsAt} offsetMs={serverOffsetMs} className="ml-auto text-2xl text-gold" />}
+        </div>
+      )}
 
       <div
         className={cn(
@@ -304,18 +315,8 @@ function PlayingHost({ state }: { state: PublicState }) {
           pending ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/25",
         )}
       >
-        {pending ? `“${pending.text}” — ${pending.byName}` : state.suggestions.length ? "Waiting for captain to lock…" : "Waiting for an answer…"}
+        {pending ? `“${pending.text}” — ${pending.byName}` : answerer ? `Waiting for ${answerer.name} to answer…` : "Waiting for an answer…"}
       </div>
-
-      {state.suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {state.suggestions.map((s, i) => (
-            <span key={i} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-sm text-white/60">
-              {s.text} — {s.byName}
-            </span>
-          ))}
-        </div>
-      )}
 
       <div>
         <div className="mb-2 label">match to board answer</div>
@@ -331,6 +332,9 @@ function PlayingHost({ state }: { state: PublicState }) {
       <div className="flex items-center gap-2">
         <Button variant="danger" className="flex-1 py-5 text-xl" onClick={() => hostAction({ type: "strike" })}>
           ✕ Strike ({state.strikes}/3)
+        </Button>
+        <Button variant="ghost" onClick={() => hostAction({ type: "skip_answerer" })}>
+          Skip answerer →
         </Button>
         <Button variant="ghost" onClick={() => hostAction({ type: "skip_question" })}>
           Skip Q
