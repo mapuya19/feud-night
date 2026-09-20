@@ -14,7 +14,7 @@
   },
   {
     "id": "top-grossing-movies-2026",
-    "prompt": "Name one of the top-grossing movies worldwide in 2026.",
+    "prompt": "Name the top-grossing movies worldwide in 2026.",
     "answers": [
       { "text": "Spider-Man: Brand New Day", "points": 29 },
       { "text": "The Odyssey", "points": 21 },
@@ -29,18 +29,18 @@
     "id": "gen-alpha-slang-2026",
     "prompt": "Name 2026 slang terms.",
     "answers": [
-      { "text": "6-7", "points": 25 },
-      { "text": "Rizz", "points": 20 },
-      { "text": "Cap or No Cap", "points": 16 },
-      { "text": "Aura or Aura Farming", "points": 14 },
-      { "text": "Sigma", "points": 10 },
-      { "text": "Crash Out", "points": 8 },
-      { "text": "Glazing", "points": 7 }
+      { "text": "Chud", "points": 25 },
+      { "text": "Aura / aura farming", "points": 20 },
+      { "text": "Larping", "points": 16 },
+      { "text": "Slop", "points": 14 },
+      { "text": "Rizz", "points": 10 },
+      { "text": "Mogging", "points": 8 },
+      { "text": "6-7", "points": 7 }
     ]
   },
   {
     "id": "top-streamed-kpop-spotify-2026",
-    "prompt": "Name the most-streamed K-pop groups on Spotify in 2026 so far.",
+    "prompt": "Name the most-streamed K-pop groups in 2026 so far (Spotify)",
     "answers": [
       { "text": "BTS", "points": 30 },
       { "text": "Stray Kids", "points": 20 },
@@ -87,7 +87,7 @@
       { "text": "Passport/ID (expiration)", "points": 14 },
       { "text": "Medication", "points": 11 },
       { "text": "Travel adapter", "points": 8 },
-      { "text": "", "points": 7 }
+      { "text": "Passport/ID", "points": 7 }
     ]
   },
   {
@@ -113,7 +113,7 @@
       { "text": "Running / NYCM 9+1", "points": 14 },
       { "text": "Roblox", "points": 11 },
       { "text": "Fashion / vintage clothing", "points": 8 },
-      { "text": "AI at work/coding", "points": 7 }
+      { "text": "AI at work/coding web games", "points": 7 }
     ]
   },
   {
