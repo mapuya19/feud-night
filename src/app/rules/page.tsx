@@ -17,7 +17,7 @@ const steps = [
     number: "03",
     title: "Answer down the line",
     accent: "text-gold",
-    body: "The controlling team rotates through its players in join order. One player is up at a time, gets 10 seconds, and sends one official answer. No coaching.",
+    body: "The controlling team rotates through its players in join order. One player is up at a time and gets 10 seconds to say an answer aloud. Typing is optional backup. No coaching."
   },
   {
     number: "04",

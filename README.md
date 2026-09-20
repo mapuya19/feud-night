@@ -22,9 +22,10 @@ rock-paper-scissors tie-break. Main-board answers rotate through every player.
 1. **Face-off** — one rep per team. First to hit the giant BUZZ button on
    their phone takes control (server-side race, ~100ms resolution).
 2. **Playing** — answers go **down the line**: one player at a time, starting
-   with the buzz winner, gets 10 seconds to send the official answer from
-   their phone. The host judges it against the board: reveal or strike. A
-   timeout counts as a strike and the mic passes on.
+   with the buzz winner, gets 10 seconds to say their answer aloud. Typing on
+   a phone is optional backup; the host can pause the clock after hearing an
+   answer, then judge it against the board: reveal or strike. A timeout counts
+   as a strike and the mic passes on.
 3. **Steal** — after 3 strikes, all opposing teams get a 15-second huddle.
    Each **captain secretly submits one steal answer** from their phone.
    Answers reveal simultaneously on the TV; the host judges each. **The

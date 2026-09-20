@@ -81,6 +81,7 @@ export interface PublicState {
   buzzWinnerName: string | null;
   answerer: PublicAnswerer | null; // who's giving the official answer right now
   myIsAnswerer: boolean; // for player viewers — it's your turn
+  answerHeard: boolean; // host heard a spoken answer and is judging it
   pendingAnswer: { text: string; byName: string } | null; // host + controlling team
   steal: PublicSteal | null;
   tiebreak: PublicTiebreak | null;
@@ -205,6 +206,7 @@ export function project(state: GameState, viewer: Viewer): PublicState {
       };
     })(),
     myIsAnswerer: state.phase === "playing" && !!state.answererId && state.answererId === viewer.playerId,
+    answerHeard: state.answerHeard,
     pendingAnswer:
       viewer.isHost || isControllingTeam
         ? state.pendingAnswer

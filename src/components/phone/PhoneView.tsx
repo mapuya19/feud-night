@@ -323,7 +323,7 @@ function PlayingPanel({ state }: { state: PublicState }) {
       </div>
 
       <p className="text-center text-sm text-white/50">
-        Answers go down the line — one player at a time, no coaching. Speak up when it&apos;s yours!
+        Answers go down the line — one player at a time, no coaching. Say it out loud when it&apos;s yours; typing is optional.
       </p>
 
       {state.answerer && !state.myIsAnswerer && (
@@ -349,10 +349,20 @@ function AnswererPad() {
   const [text, setText] = useState("");
   const pending = state?.pendingAnswer;
   const answerer = state?.answerer;
+  const heard = state?.answerHeard;
   if (!state) return null;
+  if (heard) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 p-5 text-center">
+        <span className="display text-2xl text-gold">🎤 The host heard you</span>
+        <span className="text-sm text-white/60">They&apos;re matching your spoken answer to the board…</span>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-neon/40 bg-neon/5 p-3">
-      <span className="text-xs uppercase tracking-widest text-neon">🎤 you&apos;re up — give the official answer</span>
+      <span className="text-xs uppercase tracking-widest text-neon">🎤 you&apos;re up — say it out loud</span>
+      <span className="text-xs text-white/45">Typing is optional — use this only if it helps the host.</span>
       {answerer?.endsAt && (
         <div className="display text-center text-3xl text-gold">
           <Countdown endsAt={answerer.endsAt} offsetMs={serverOffsetMs} />
@@ -372,14 +382,14 @@ function AnswererPad() {
           onChange={(e) => setText(e.target.value)}
           disabled={!!pending}
           maxLength={60}
-          placeholder="Your answer…"
+          placeholder="Type it too (optional)…"
           autoCapitalize="sentences"
           enterKeyHint="send"
           aria-label="Official answer"
           className="field min-w-0 flex-1 font-semibold focus:border-neon/70 focus:ring-neon/25"
         />
         <Button variant="gold" type="submit" disabled={!!pending || !text.trim()}>
-          Send it
+          Type it
         </Button>
       </form>
       {pending && <span role="status" className="text-center text-xs text-white/40">“{pending.text}” is in — awaiting host…</span>}

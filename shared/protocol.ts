@@ -16,6 +16,7 @@ export type HostAction =
   | { type: "start_game" }
   | { type: "start_faceoff" } // re-run faceoff for same round (e.g. buzz dispute)
   | { type: "reveal_answer"; slot: number }
+  | { type: "hear_answer" } // host heard a spoken answer; pause clock while judging
   | { type: "strike" }
   | { type: "skip_answerer" } // advance to the next player in line (e.g. someone AFK)
   | { type: "skip_question" }

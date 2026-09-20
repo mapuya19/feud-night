@@ -117,9 +117,10 @@ async function run() {
 
   alice.socket.send({ type: "player_action", playerId: alice.playerId, action: { type: "buzz" } });
   await waitFor(board, (state) => state.phase === "playing" && state.answerer?.name === "Alice", "Alice wins and is first up");
-  alice.socket.send({ type: "player_action", playerId: alice.playerId, action: { type: "submit_answer", text: "first answer" } });
-  await waitFor(host, (state) => state.pendingAnswer?.text === "first answer", "host receives the official answer");
-  await waitFor(bob.socket, (state) => state.pendingAnswer === null, "opposing team cannot see the answer");
+  // Alice answers aloud; the host pauses the clock instead of requiring a type-in.
+  host.send({ type: "host_action", token: hostToken, action: { type: "hear_answer" } });
+  await waitFor(host, (state) => state.answerHeard && state.pendingAnswer === null, "host pauses the clock for a spoken answer");
+  await waitFor(bob.socket, (state) => state.answerHeard, "other teams see the answer is being judged, not its contents");
 
   host.send({ type: "host_action", token: hostToken, action: { type: "reveal_answer", slot: 0 } });
   await waitFor(board, (state) => state.question?.slots[0]?.revealed && state.answerer?.name === "Dave", "answer revealed and mic passes to Dave");

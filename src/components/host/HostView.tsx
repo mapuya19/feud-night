@@ -294,6 +294,7 @@ function FaceoffHost({ state }: { state: PublicState }) {
 function PlayingHost({ state }: { state: PublicState }) {
   const { hostAction, serverOffsetMs } = useFeud();
   const pending = state.pendingAnswer;
+  const heard = state.answerHeard;
   const answerer = state.answerer;
   const unrevealed = state.question?.slots.map((s, i) => ({ s, i })).filter(({ s }) => !s.revealed) ?? [];
   return (
@@ -314,10 +315,16 @@ function PlayingHost({ state }: { state: PublicState }) {
       <div
         className={cn(
           "display flex min-h-28 items-center justify-center rounded-2xl border-2 border-dashed p-5 text-center text-3xl sm:text-4xl",
-          pending ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/25",
+          pending || heard ? "border-gold bg-gold/10 text-gold" : "border-white/15 text-white/25",
         )}
       >
-        {pending ? `“${pending.text}” — ${pending.byName}` : answerer ? `Waiting for ${answerer.name} to answer…` : "Waiting for an answer…"}
+        {pending
+          ? `“${pending.text}” — ${pending.byName}`
+          : heard
+            ? "🎤 Spoken answer heard — judge it against the board"
+            : answerer
+              ? `Waiting for ${answerer.name} to answer…`
+              : "Waiting for an answer…"}
       </div>
 
       <div>
@@ -331,7 +338,10 @@ function PlayingHost({ state }: { state: PublicState }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="gold" disabled={!!pending || heard} onClick={() => hostAction({ type: "hear_answer" })}>
+          🎤 Heard it — pause clock
+        </Button>
         <Button variant="danger" className="flex-1 py-5 text-xl" onClick={() => hostAction({ type: "strike" })}>
           ✕ Strike ({state.strikes}/3)
         </Button>

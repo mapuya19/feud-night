@@ -87,7 +87,8 @@ export interface GameState {
   controllingTeamId: string | null;
   buzzWinnerId: string | null;
   answererId: string | null; // who's giving the official answer (down the line)
-  pendingAnswer: Suggestion | null; // official answer awaiting host judgment
+  answerHeard: boolean; // host heard a spoken answer and paused the clock to judge it
+  pendingAnswer: Suggestion | null; // optional typed answer awaiting host judgment
   steal: {
     submissions: StealSubmission[];
     results: { teamId: string; text: string; slot: number | null }[] | null;

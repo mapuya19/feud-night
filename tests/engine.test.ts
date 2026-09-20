@@ -183,6 +183,21 @@ describe("answers & scoring", () => {
     expect(s.lastAward?.reason).toBe("clear");
   });
 
+  it("lets the host pause the clock for a spoken answer", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    expect(applyHostAction(s, { type: "hear_answer" }).ok).toBe(true);
+    expect(s.answerHeard).toBe(true);
+    expect(s.timer).toBeNull();
+    expect(applyPlayerAction(s, "p1", { type: "submit_answer", text: "late type-in" }).ok).toBe(false);
+    setConnected(s, "p1", false);
+    expect(s.answererId).toBe("p1"); // host still has the spoken answer to judge
+    applyHostAction(s, { type: "reveal_answer", slot: 0 });
+    expect(s.answerHeard).toBe(false);
+    expect(s.answererId).toBe("p5");
+  });
+
   it("rejects late and duplicate answers without replacing the official answer", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });

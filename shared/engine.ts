@@ -59,6 +59,7 @@ export function createGame(
     controllingTeamId: null,
     buzzWinnerId: null,
     answererId: null,
+    answerHeard: false,
     pendingAnswer: null,
     steal: null,
     tiebreak: null,
@@ -122,6 +123,7 @@ export function setConnected(state: GameState, playerId: string, connected: bool
     state.phase === "playing" &&
     state.answererId === playerId &&
     state.timer?.kind === "answer" &&
+    !state.answerHeard &&
     !state.pendingAnswer
   ) {
     advanceAnswerer(state);
@@ -150,6 +152,7 @@ function clearTimer(state: GameState): void {
 
 /** The controlling team answers down the line; advance and restart the answer clock. */
 function advanceAnswerer(state: GameState): void {
+  state.answerHeard = false;
   const team = state.controllingTeamId ? state.teams[state.controllingTeamId] : null;
   if (!team || team.players.length === 0) {
     state.answererId = null;
@@ -177,6 +180,7 @@ function beginSteal(state: GameState): void {
   state.steal = { submissions: [], results: null };
   state.tiebreak = null;
   state.answererId = null;
+  state.answerHeard = false;
   state.pendingAnswer = null;
   state.timer = { kind: "steal", endsAt: Date.now() + STEAL_DURATION_MS, durationMs: STEAL_DURATION_MS };
 }
@@ -222,6 +226,7 @@ function loadNextQuestion(state: GameState): void {
   state.question = q;
   state.revealed = q.answers.map(() => false);
   state.strikes = 0;
+  state.answerHeard = false;
   state.pendingAnswer = null;
   state.answererId = null;
   state.steal = null;
@@ -258,6 +263,7 @@ function awardBank(state: GameState, teamId: string, reason: "clear" | "steal" |
   state.lastAward = { teamId, points: pts, reason };
   state.phase = "round_over";
   state.answererId = null;
+  state.answerHeard = false;
   state.pendingAnswer = null;
   clearTimer(state);
   return ok;
@@ -283,6 +289,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       state.controllingTeamId = null;
       state.buzzWinnerId = null;
       state.answererId = null;
+      state.answerHeard = false;
       state.pendingAnswer = null;
       clearTimer(state);
       return ok;
@@ -294,6 +301,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       if (slot < 0 || slot >= state.question.answers.length) return fail("Bad slot");
       if (state.revealed[slot]) return fail("Already revealed");
       state.revealed[slot] = true;
+      state.answerHeard = false;
       state.pendingAnswer = null;
       if (state.revealed.every(Boolean)) {
         const winner = state.controllingTeamId;
@@ -303,9 +311,18 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       return ok;
     }
 
+    case "hear_answer": {
+      if (state.phase !== "playing") return fail("Not in answering phase");
+      if (state.pendingAnswer || state.answerHeard) return fail("An answer is already awaiting judgment");
+      state.answerHeard = true;
+      clearTimer(state);
+      return ok;
+    }
+
     case "strike": {
       if (state.phase !== "playing") return fail("Not in answering phase");
       state.strikes++;
+      state.answerHeard = false;
       state.pendingAnswer = null;
       if (state.strikes >= STRIKES_TO_STEAL) {
         beginSteal(state);
@@ -317,6 +334,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
 
     case "skip_answerer": {
       if (state.phase !== "playing") return fail("Not in answering phase");
+      state.answerHeard = false;
       state.pendingAnswer = null;
       advanceAnswerer(state);
       return ok;
@@ -441,6 +459,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
         state.winnerTeamId = leader?.id ?? null;
       }
       state.answererId = null;
+      state.answerHeard = false;
       state.pendingAnswer = null;
       clearTimer(state);
       return ok;
@@ -496,6 +515,7 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
       state.phase = "playing";
       // The buzz winner gives the first official answer; then down the line.
       state.answererId = playerId;
+      state.answerHeard = false;
       state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
       return ok;
     }
@@ -507,7 +527,7 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
         const up = state.answererId ? state.players[state.answererId]?.name : null;
         return fail(up ? `It's ${up}'s turn — answers go down the line` : "No answerer is up");
       }
-      if (state.pendingAnswer) return fail("That answer is already awaiting the host");
+      if (state.pendingAnswer || state.answerHeard) return fail("That answer is already awaiting the host");
       if (state.timer?.kind !== "answer" || Date.now() >= state.timer.endsAt) return fail("Time is up");
       const text = action.text.trim().slice(0, MAX_ANSWER_LENGTH);
       if (!text) return fail("Empty answer");
@@ -573,6 +593,7 @@ export function expireTimer(state: GameState): boolean {
     if (state.phase !== "playing") return false;
     // Out of time without an official answer — that's a strike, keep the line moving.
     state.strikes++;
+    state.answerHeard = false;
     state.pendingAnswer = null;
     if (state.strikes >= STRIKES_TO_STEAL) {
       beginSteal(state);

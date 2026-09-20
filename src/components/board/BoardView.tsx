@@ -226,7 +226,7 @@ function RoundBoard({ state }: { state: PublicState }) {
               className="display text-2xl"
               style={{ color: controlling?.color }}
             >
-              {controlling?.name.toUpperCase()} IN CONTROL · UP NOW: {state.answerer?.name ?? "—"}
+              {controlling?.name.toUpperCase()} IN CONTROL · {state.answerHeard ? "ANSWER IN — HOST JUDGING" : `UP NOW: ${state.answerer?.name ?? "—"}`}
               {state.answerer?.endsAt && (
                 <Countdown endsAt={state.answerer.endsAt} offsetMs={serverOffsetMs} className="ml-3 text-white/80" />
               )}
