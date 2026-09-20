@@ -116,14 +116,14 @@ async function run() {
   await waitFor(board, (state) => state.phase === "faceoff", "face-off begins");
 
   alice.socket.send({ type: "player_action", playerId: alice.playerId, action: { type: "buzz" } });
-  await waitFor(board, (state) => state.phase === "playing" && state.answerer?.name === "Alice", "Alice wins and is first up");
+  await waitFor(board, (state) => state.phase === "faceoff_answer" && state.answerer?.name === "Alice", "Alice gets the first face-off answer");
   // Alice answers aloud; the host pauses the clock instead of requiring a type-in.
   host.send({ type: "host_action", token: hostToken, action: { type: "hear_answer" } });
   await waitFor(host, (state) => state.answerHeard && state.pendingAnswer === null, "host pauses the clock for a spoken answer");
   await waitFor(bob.socket, (state) => state.answerHeard, "other teams see the answer is being judged, not its contents");
 
   host.send({ type: "host_action", token: hostToken, action: { type: "reveal_answer", slot: 0 } });
-  await waitFor(board, (state) => state.question?.slots[0]?.revealed && state.answerer?.name === "Dave", "answer revealed and mic passes to Dave");
+  await waitFor(board, (state) => state.phase === "playing" && state.question?.slots[0]?.revealed && state.answerer?.name === "Dave", "on-board face-off answer awards control and passes the mic");
 
   for (let i = 0; i < 3; i++) host.send({ type: "host_action", token: hostToken, action: { type: "strike" } });
   await waitFor(board, (state) => state.phase === "steal" && !!state.steal?.endsAt, "three strikes open the steal");
@@ -156,8 +156,10 @@ async function run() {
     const rep = players.find((player) => player.name === diamondRep);
     assert(rep, `round ${round} Diamond rep is connected`);
     rep.socket.send({ type: "player_action", playerId: rep.playerId, action: { type: "buzz" } });
-    const playing = await waitFor(board, (state) => state.phase === "playing", `round ${round} buzz`);
-    for (let slot = 0; slot < playing.question.slots.length; slot++) {
+    await waitFor(board, (state) => state.phase === "faceoff_answer", `round ${round} face-off answer`);
+    host.send({ type: "host_action", token: hostToken, action: { type: "reveal_answer", slot: 0 } });
+    const playing = await waitFor(board, (state) => state.phase === "playing", `round ${round} control awarded`);
+    for (let slot = 1; slot < playing.question.slots.length; slot++) {
       host.send({ type: "host_action", token: hostToken, action: { type: "reveal_answer", slot } });
     }
     await waitFor(board, (state) => state.phase === "round_over", `round ${round} board clears`);

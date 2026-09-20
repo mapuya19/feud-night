@@ -144,6 +144,7 @@ export function ErrorToast({ message, onDone }: { message: string; onDone: () =>
 export const PHASE_LABEL: Record<string, string> = {
   lobby: "Lobby",
   faceoff: "Face-Off",
+  faceoff_answer: "Face-Off Answer",
   playing: "Playing",
   steal: "Steal!",
   steal_reveal: "Steal Results",

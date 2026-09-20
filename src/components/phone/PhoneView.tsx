@@ -170,6 +170,12 @@ function PhasePanel({ state }: { state: PublicState }) {
       return <LobbyPanel state={state} />;
     case "faceoff":
       return <FaceoffPanel state={state} />;
+    case "faceoff_answer":
+      return state.myIsAnswerer ? (
+        <AnswererPad faceoff />
+      ) : (
+        <Centered><span className="display text-xl text-white/60">🎤 {state.answerer?.name ?? "A rep"} has the face-off answer.</span></Centered>
+      );
     case "playing":
       return <PlayingPanel state={state} />;
     case "steal":
@@ -268,7 +274,7 @@ function FaceoffPanel({ state }: { state: PublicState }) {
   if (amRep) {
     return (
       <div className="flex flex-col items-center gap-3">
-        <p className="display text-center text-lg text-white/70">You&apos;re up. First to buzz takes control!</p>
+        <p className="display text-center text-lg text-white/70">You&apos;re up. First to buzz gets the first answer chance!</p>
         <motion.button
           whileTap={{ scale: 0.94 }}
           onClick={() => playerAction({ type: "buzz" })}
@@ -344,7 +350,7 @@ function PlayingPanel({ state }: { state: PublicState }) {
 }
 // ---------------------------------------------------------------- playing
 
-function AnswererPad() {
+function AnswererPad({ faceoff = false }: { faceoff?: boolean }) {
   const { state, playerAction, serverOffsetMs } = useFeud();
   const [text, setText] = useState("");
   const pending = state?.pendingAnswer;
@@ -355,14 +361,14 @@ function AnswererPad() {
     return (
       <div className="flex flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-gold/10 p-5 text-center">
         <span className="display text-2xl text-gold">🎤 The host heard you</span>
-        <span className="text-sm text-white/60">They&apos;re matching your spoken answer to the board…</span>
+        <span className="text-sm text-white/60">{faceoff ? "They’re deciding whether your team takes control…" : "They’re matching your spoken answer to the board…"}</span>
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-neon/40 bg-neon/5 p-3">
-      <span className="text-xs uppercase tracking-widest text-neon">🎤 you&apos;re up — say it out loud</span>
-      <span className="text-xs text-white/45">Typing is optional — use this only if it helps the host.</span>
+      <span className="text-xs uppercase tracking-widest text-neon">🎤 {faceoff ? "you buzzed first — give the face-off answer" : "you’re up — say it out loud"}</span>
+      <span className="text-xs text-white/45">{faceoff ? "An on-board answer gives your team control. Typing is optional." : "Typing is optional — use this only if it helps the host."}</span>
       {answerer?.endsAt && (
         <div className="display text-center text-3xl text-gold">
           <Countdown endsAt={answerer.endsAt} offsetMs={serverOffsetMs} />

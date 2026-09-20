@@ -5,6 +5,7 @@ export type Role = "host" | "board" | "player";
 export type Phase =
   | "lobby" // players joining, teams forming
   | "faceoff" // reps up, waiting for first buzz
+  | "faceoff_answer" // first buzzer gives the answer that can win control
   | "playing" // controlling team answers the board
   | "steal" // 3 strikes; every opposing team huddles + secretly submits
   | "steal_reveal" // all steal answers shown; host judges

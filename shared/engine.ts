@@ -115,11 +115,20 @@ function movePlayerToTeam(state: GameState, playerId: string, teamId: string): E
 export function setConnected(state: GameState, playerId: string, connected: boolean): void {
   const p = state.players[playerId];
   if (p && p.connected !== connected) p.connected = connected;
+  if (!p || connected) return;
+  // A disconnected face-off buzzer simply forfeits that attempt; reopen the race.
+  if (
+    state.phase === "faceoff_answer" &&
+    state.buzzWinnerId === playerId &&
+    !state.answerHeard &&
+    !state.pendingAnswer
+  ) {
+    resetFaceoff(state);
+    return;
+  }
   // A submitted answer remains with the host even if its player drops. Only
   // pass the mic when the active player disconnected before submitting.
   if (
-    p &&
-    !connected &&
     state.phase === "playing" &&
     state.answererId === playerId &&
     state.timer?.kind === "answer" &&
@@ -148,6 +157,17 @@ export function bank(state: GameState): number {
 
 function clearTimer(state: GameState): void {
   state.timer = null;
+}
+
+/** Clear an unanswered face-off attempt and let every rep buzz again. */
+function resetFaceoff(state: GameState): void {
+  state.phase = "faceoff";
+  state.controllingTeamId = null;
+  state.buzzWinnerId = null;
+  state.answererId = null;
+  state.answerHeard = false;
+  state.pendingAnswer = null;
+  clearTimer(state);
 }
 
 /** The controlling team answers down the line; advance and restart the answer clock. */
@@ -262,6 +282,9 @@ function awardBank(state: GameState, teamId: string, reason: "clear" | "steal" |
   state.teams[teamId].score += pts;
   state.lastAward = { teamId, points: pts, reason };
   state.phase = "round_over";
+  // Reveal the answer key for the audience after the bank is frozen. These
+  // flips are informational only and do not affect the awarded points above.
+  state.revealed = state.revealed.map(() => true);
   state.answererId = null;
   state.answerHeard = false;
   state.pendingAnswer = null;
@@ -284,25 +307,33 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     }
 
     case "start_faceoff": {
-      if (state.phase !== "playing" && state.phase !== "faceoff") return fail("Can only re-run face-off mid-question");
-      state.phase = "faceoff";
-      state.controllingTeamId = null;
-      state.buzzWinnerId = null;
-      state.answererId = null;
-      state.answerHeard = false;
-      state.pendingAnswer = null;
-      clearTimer(state);
+      if (state.phase !== "playing" && state.phase !== "faceoff" && state.phase !== "faceoff_answer")
+        return fail("Can only re-run face-off mid-question");
+      resetFaceoff(state);
       return ok;
     }
 
     case "reveal_answer": {
-      if (state.phase !== "playing" || !state.question) return fail("Not in answering phase");
+      if ((state.phase !== "playing" && state.phase !== "faceoff_answer") || !state.question)
+        return fail("Not in answering phase");
       const slot = action.slot;
       if (slot < 0 || slot >= state.question.answers.length) return fail("Bad slot");
       if (state.revealed[slot]) return fail("Already revealed");
       state.revealed[slot] = true;
       state.answerHeard = false;
       state.pendingAnswer = null;
+
+      if (state.phase === "faceoff_answer") {
+        const buzzer = state.buzzWinnerId ? state.players[state.buzzWinnerId] : null;
+        if (!buzzer) return fail("No face-off buzzer");
+        state.controllingTeamId = buzzer.teamId;
+        state.phase = "playing";
+        // The buzzer supplied the face-off answer; pass the next board answer
+        // to the next teammate, just like the show.
+        advanceAnswerer(state);
+        return ok;
+      }
+
       if (state.revealed.every(Boolean)) {
         const winner = state.controllingTeamId;
         if (winner) return awardBank(state, winner, "clear");
@@ -312,7 +343,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     }
 
     case "hear_answer": {
-      if (state.phase !== "playing") return fail("Not in answering phase");
+      if (state.phase !== "playing" && state.phase !== "faceoff_answer") return fail("Not in answering phase");
       if (state.pendingAnswer || state.answerHeard) return fail("An answer is already awaiting judgment");
       state.answerHeard = true;
       clearTimer(state);
@@ -320,6 +351,10 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     }
 
     case "strike": {
+      if (state.phase === "faceoff_answer") {
+        resetFaceoff(state);
+        return ok;
+      }
       if (state.phase !== "playing") return fail("Not in answering phase");
       state.strikes++;
       state.answerHeard = false;
@@ -341,7 +376,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     }
 
     case "skip_question": {
-      if (state.phase !== "faceoff" && state.phase !== "playing") return fail("No active question");
+      if (state.phase !== "faceoff" && state.phase !== "faceoff_answer" && state.phase !== "playing") return fail("No active question");
       state.controllingTeamId = null;
       state.buzzWinnerId = null;
       state.answererId = null;
@@ -510,19 +545,22 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
     case "buzz": {
       if (state.phase !== "faceoff") return fail("No face-off in progress");
       if (state.reps[team.id] !== playerId) return fail("You're not the rep");
-      state.controllingTeamId = team.id;
+      state.controllingTeamId = null;
       state.buzzWinnerId = playerId;
-      state.phase = "playing";
-      // The buzz winner gives the first official answer; then down the line.
+      state.phase = "faceoff_answer";
+      // A first buzz wins the chance to answer, not board control. The host
+      // confirms an on-board response before this team takes the board.
       state.answererId = playerId;
       state.answerHeard = false;
+      state.pendingAnswer = null;
       state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
       return ok;
     }
 
     case "submit_answer": {
-      if (state.phase !== "playing") return fail("Not answering right now");
-      if (state.controllingTeamId !== team.id) return fail("Not your team's turn");
+      if (state.phase !== "playing" && state.phase !== "faceoff_answer") return fail("Not answering right now");
+      if (state.phase === "playing" && state.controllingTeamId !== team.id) return fail("Not your team's turn");
+      if (state.phase === "faceoff_answer" && state.buzzWinnerId !== playerId) return fail("The first buzzer answers the face-off");
       if (state.answererId !== playerId) {
         const up = state.answererId ? state.players[state.answererId]?.name : null;
         return fail(up ? `It's ${up}'s turn — answers go down the line` : "No answerer is up");
@@ -590,6 +628,10 @@ export function expireTimer(state: GameState): boolean {
     return true;
   }
   if (kind === "answer") {
+    if (state.phase === "faceoff_answer") {
+      resetFaceoff(state);
+      return true;
+    }
     if (state.phase !== "playing") return false;
     // Out of time without an official answer — that's a strike, keep the line moving.
     state.strikes++;

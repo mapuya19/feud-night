@@ -67,7 +67,7 @@ export default function Home() {
           {[
             {
               tag: "Face-off",
-              body: "One rep per team steps up. First to hit the big red button takes control — the server calls the buzzer race.",
+              body: "One rep per team steps up. First to hit the big red button gets the first answer chance; an on-board answer wins control.",
               accent: "text-gold",
             },
             {

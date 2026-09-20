@@ -79,8 +79,8 @@ export interface PublicState {
   question: { prompt: string | null; slots: PublicSlot[]; bank: number } | null;
   strikes: number;
   buzzWinnerName: string | null;
-  answerer: PublicAnswerer | null; // who's giving the official answer right now
-  myIsAnswerer: boolean; // for player viewers — it's your turn
+  answerer: PublicAnswerer | null; // who's giving the current spoken answer
+  myIsAnswerer: boolean; // for player viewers — it's your turn, including face-off
   answerHeard: boolean; // host heard a spoken answer and is judging it
   pendingAnswer: { text: string; byName: string } | null; // host + controlling team
   steal: PublicSteal | null;
@@ -133,7 +133,9 @@ export function project(state: GameState, viewer: Viewer): PublicState {
         revealed: state.revealed[i],
         text: state.revealed[i] || viewer.isHost ? a.text : null,
       })),
-      bank: bank(state),
+      // The end-of-round answer key flips every slot, but scoring remains the
+      // frozen bank that was awarded before those informational reveals.
+      bank: state.phase === "round_over" && state.lastAward ? state.lastAward.points : bank(state),
     };
   }
 
@@ -193,9 +195,9 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     strikes: state.strikes,
     buzzWinnerName: state.buzzWinnerId ? state.players[state.buzzWinnerId]?.name ?? null : null,
     answerer: (() => {
-      if (state.phase !== "playing" || !state.answererId || !state.controllingTeamId) return null;
+      if ((state.phase !== "playing" && state.phase !== "faceoff_answer") || !state.answererId) return null;
       const up = state.players[state.answererId];
-      const team = state.teams[state.controllingTeamId];
+      const team = state.teams[state.controllingTeamId ?? up?.teamId ?? ""];
       if (!up || !team) return null;
       return {
         name: up.name,
@@ -205,10 +207,11 @@ export function project(state: GameState, viewer: Viewer): PublicState {
         durationMs: state.timer?.kind === "answer" ? state.timer.durationMs : ANSWER_DURATION_MS,
       };
     })(),
-    myIsAnswerer: state.phase === "playing" && !!state.answererId && state.answererId === viewer.playerId,
+    myIsAnswerer:
+      (state.phase === "playing" || state.phase === "faceoff_answer") && !!state.answererId && state.answererId === viewer.playerId,
     answerHeard: state.answerHeard,
     pendingAnswer:
-      viewer.isHost || isControllingTeam
+      viewer.isHost || isControllingTeam || (state.phase === "faceoff_answer" && state.answererId === viewer.playerId)
         ? state.pendingAnswer
           ? { text: state.pendingAnswer.text, byName: state.pendingAnswer.byName }
           : null

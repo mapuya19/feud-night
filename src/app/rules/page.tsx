@@ -11,7 +11,7 @@ const steps = [
     number: "02",
     title: "Face-off",
     accent: "text-neon",
-    body: "One designated rep per team buzzes. The first valid buzz wins control and gives the board’s first official answer.",
+    body: "One designated rep per team buzzes. The first valid buzz gets the first answer chance; an on-board answer gives that team control.",
   },
   {
     number: "03",

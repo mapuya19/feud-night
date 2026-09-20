@@ -14,6 +14,7 @@ export function BoardView() {
     case "lobby":
       return <LobbyBoard state={state} />;
     case "faceoff":
+    case "faceoff_answer":
     case "playing":
     case "steal":
     case "steal_reveal":
@@ -215,6 +216,12 @@ function RoundBoard({ state }: { state: PublicState }) {
           {state.phase === "faceoff" && (
             <motion.div key="faceoff" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="display text-2xl text-white/60">
               🔔 FACE-OFF · TEAM REPS BUZZ NOW
+            </motion.div>
+          )}
+          {state.phase === "faceoff_answer" && state.answerer && (
+            <motion.div key="faceoff-answer" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="display text-2xl text-gold">
+              🎤 {state.answerer.name.toUpperCase()} BUZZED FIRST · ANSWER NOW
+              {state.answerer.endsAt && <Countdown endsAt={state.answerer.endsAt} offsetMs={serverOffsetMs} className="ml-3 text-white/80" />}
             </motion.div>
           )}
           {state.phase === "playing" && state.buzzWinnerName && (

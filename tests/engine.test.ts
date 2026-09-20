@@ -140,14 +140,28 @@ describe("lobby", () => {
 });
 
 describe("faceoff", () => {
-  it("only lets the current rep buzz; first buzz wins control", () => {
+  it("gives the first rep a face-off answer chance before awarding control", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
     expect(applyPlayerAction(s, "p5", { type: "buzz" }).ok).toBe(false); // not the rep
     expect(applyPlayerAction(s, "p1", { type: "buzz" }).ok).toBe(true);
+    expect(s.phase).toBe("faceoff_answer");
+    expect(s.controllingTeamId).toBeNull();
+    expect(applyPlayerAction(s, "p2", { type: "buzz" }).ok).toBe(false); // answer chance is reserved
+    applyHostAction(s, { type: "reveal_answer", slot: 0 });
     expect(s.phase).toBe("playing");
     expect(s.controllingTeamId).toBe("diamond");
-    expect(applyPlayerAction(s, "p2", { type: "buzz" }).ok).toBe(false); // race lost
+    expect(s.answererId).toBe("p5"); // face-off rep's answer is already used
+  });
+
+  it("reopens buzzers after a face-off miss without adding a strike", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "strike" });
+    expect(s.phase).toBe("faceoff");
+    expect(s.strikes).toBe(0);
+    expect(applyPlayerAction(s, "p2", { type: "buzz" }).ok).toBe(true);
   });
 
   it("rep rotates with rounds", () => {
@@ -213,13 +227,20 @@ describe("answers & scoring", () => {
     expect(s.pendingAnswer?.text).toBe("first");
   });
 
-  it("answer timeout is a strike and passes the mic to the next player in line", () => {
+  it("face-off timeout reopens buzzers; board-answer timeout is a strike", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
     applyPlayerAction(s, "p1", { type: "buzz" });
-    expect(expireTimer(s)).toBe(true); // p1 runs out the clock
+    expect(expireTimer(s)).toBe(true);
+    expect(s.phase).toBe("faceoff");
+    expect(s.strikes).toBe(0);
+
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "reveal_answer", slot: 0 });
+    expect(s.answererId).toBe("p5");
+    expect(expireTimer(s)).toBe(true); // p5 runs out the board-answer clock
     expect(s.strikes).toBe(1);
-    expect(s.answererId).toBe("p5"); // next down the line
+    expect(s.answererId).toBe("p1"); // next down the line
     expect(expireTimer(s)).toBe(true);
     expect(expireTimer(s)).toBe(true);
     expect(s.strikes).toBe(3);
@@ -249,8 +270,8 @@ describe("answers & scoring", () => {
     applyHostAction(unanswered, { type: "start_game" });
     applyPlayerAction(unanswered, "p1", { type: "buzz" });
     setConnected(unanswered, "p1", false);
-    expect(unanswered.answererId).toBe("p5"); // pass an unanswered disconnected player
-    expect(unanswered.timer?.kind).toBe("answer");
+    expect(unanswered.phase).toBe("faceoff"); // no face-off answer, so reopen buzzers
+    expect(unanswered.timer).toBeNull();
   });
 
   it("rounds 3-4 are double points", () => {
@@ -275,6 +296,7 @@ describe("answers & scoring", () => {
 
 describe("strikes & steal", () => {
   function strikeOut(s: GameState): void {
+    if (s.phase === "faceoff_answer") applyHostAction(s, { type: "reveal_answer", slot: 0 });
     applyHostAction(s, { type: "strike" });
     applyHostAction(s, { type: "strike" });
     applyHostAction(s, { type: "strike" });
@@ -394,6 +416,10 @@ describe("strikes & steal", () => {
     });
     expect(s.teams.diamond.score).toBe(40);
     expect(s.lastAward?.reason).toBe("failed_steal");
+    expect(s.revealed.every(Boolean)).toBe(true); // answer key flips after the bank is frozen
+    const board = project(s, { role: "board", isHost: false });
+    expect(board.question?.bank).toBe(40);
+    expect(board.question?.slots.every((slot) => slot.text !== null)).toBe(true);
   });
 
   it("steal timer expiry moves to reveal with unsubmitted teams locked out", () => {
@@ -482,6 +508,7 @@ describe("projection privacy", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
     applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "reveal_answer", slot: 0 }); // wins face-off
     applyHostAction(s, { type: "strike" });
     applyHostAction(s, { type: "strike" });
     applyHostAction(s, { type: "strike" });

@@ -25,6 +25,7 @@ export function HostView({ code }: { code: string }) {
         <div className="min-w-0">
           {state.phase === "lobby" && <LobbyHost state={state} />}
           {state.phase === "faceoff" && <FaceoffHost state={state} />}
+          {state.phase === "faceoff_answer" && <PlayingHost state={state} />}
           {state.phase === "playing" && <PlayingHost state={state} />}
           {state.phase === "steal" && <StealHost state={state} />}
           {state.phase === "steal_reveal" && <StealJudgeHost state={state} />}
@@ -296,17 +297,18 @@ function PlayingHost({ state }: { state: PublicState }) {
   const pending = state.pendingAnswer;
   const heard = state.answerHeard;
   const answerer = state.answerer;
+  const isFaceoff = state.phase === "faceoff_answer";
   const unrevealed = state.question?.slots.map((s, i) => ({ s, i })).filter(({ s }) => !s.revealed) ?? [];
   return (
     <section className="host-panel flex flex-col gap-5">
-      <h2 className="display text-2xl text-white sm:text-3xl">⚖️ Judge the answer</h2>
+      <h2 className="display text-2xl text-white sm:text-3xl">{isFaceoff ? "🔔 Judge the face-off answer" : "⚖️ Judge the answer"}</h2>
       <p className="max-w-4xl text-lg leading-snug text-white/65">{state.question?.prompt}</p>
 
       {answerer && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] backdrop-blur-xl p-3">
-          <span className="display text-xl text-white/85">🎤 Up now: {answerer.name}</span>
+          <span className="display text-xl text-white/85">🎤 {isFaceoff ? "First buzzer" : "Up now"}: {answerer.name}</span>
           <span className="text-sm text-white/40">
-            {answerer.position} of {answerer.lineLength} in line
+            {isFaceoff ? "On-board answer wins control" : `${answerer.position} of ${answerer.lineLength} in line`}
           </span>
           {answerer.endsAt && <Countdown endsAt={answerer.endsAt} offsetMs={serverOffsetMs} className="ml-auto text-2xl text-gold" />}
         </div>
@@ -321,7 +323,9 @@ function PlayingHost({ state }: { state: PublicState }) {
         {pending
           ? `“${pending.text}” — ${pending.byName}`
           : heard
-            ? "🎤 Spoken answer heard — judge it against the board"
+            ? isFaceoff
+              ? "🎤 Spoken answer heard — is it on the board?"
+              : "🎤 Spoken answer heard — judge it against the board"
             : answerer
               ? `Waiting for ${answerer.name} to answer…`
               : "Waiting for an answer…"}
@@ -342,12 +346,14 @@ function PlayingHost({ state }: { state: PublicState }) {
         <Button variant="gold" disabled={!!pending || heard} onClick={() => hostAction({ type: "hear_answer" })}>
           🎤 Heard it — pause clock
         </Button>
-        <Button variant="danger" className="flex-1 py-5 text-xl" onClick={() => hostAction({ type: "strike" })}>
-          ✕ Strike ({state.strikes}/3)
+        <Button variant="danger" className={isFaceoff ? "py-5 text-xl" : "flex-1 py-5 text-xl"} onClick={() => hostAction({ type: "strike" })}>
+          {isFaceoff ? "✕ Not on board — reopen buzzers" : `✕ Strike (${state.strikes}/3)`}
         </Button>
-        <Button variant="ghost" onClick={() => hostAction({ type: "skip_answerer" })}>
-          Skip answerer →
-        </Button>
+        {!isFaceoff && (
+          <Button variant="ghost" onClick={() => hostAction({ type: "skip_answerer" })}>
+            Skip answerer →
+          </Button>
+        )}
         <Button variant="ghost" onClick={() => hostAction({ type: "skip_question" })}>
           Skip Q
         </Button>

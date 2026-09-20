@@ -19,8 +19,9 @@ rock-paper-scissors tie-break. Main-board answers rotate through every player.
 
 **Rounds 1–5** (rounds 3–4 are double points; round 5 is the final triple-points board):
 
-1. **Face-off** — one rep per team. First to hit the giant BUZZ button on
-   their phone takes control (server-side race, ~100ms resolution).
+1. **Face-off** — one rep per team. First to hit the giant BUZZ button gets
+   the first answer chance (server-side race, ~100ms resolution); an on-board
+   answer gives that team control, while a miss reopens the buzzers.
 2. **Playing** — answers go **down the line**: one player at a time, starting
    with the buzz winner, gets 10 seconds to say their answer aloud. Typing on
    a phone is optional backup; the host can pause the clock after hearing an
