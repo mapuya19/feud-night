@@ -144,3 +144,4 @@ daily cap tripping — it errors until 00:00 UTC, never charges.
   and write them in as questions. This is the killer feature.
 - **Tuning**: round multipliers, team count limits, and steal seconds
   live in `shared/config.ts`.
+
