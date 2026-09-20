@@ -30,6 +30,8 @@ export interface Player {
   name: string;
   teamId: string;
   connected: boolean;
+  /** First round this player can be called on; late arrivals wait for the next one. */
+  eligibleFromRound: number;
 }
 
 export interface Team {

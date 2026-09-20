@@ -155,6 +155,34 @@ describe("lobby", () => {
   });
 });
 
+describe("late arrivals", () => {
+  it("adds multiple newcomers at the back of a team and starts them next round", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyHostAction(s, { type: "reveal_answer", slot: 0 }); // p5 is now up for Diamond
+
+    join(s, "p6", "Finn", "diamond");
+    join(s, "p7", "Gia", "diamond");
+    expect(s.teams.diamond.players).toEqual(["p1", "p5", "p6", "p7"]);
+    expect(s.players.p6.eligibleFromRound).toBe(1);
+    expect(s.players.p7.eligibleFromRound).toBe(1);
+    expect(project(s, { role: "player", playerId: "p6", isHost: false }).myJoinsNextRound).toBe(true);
+
+    applyHostAction(s, { type: "reveal_answer", slot: 1 });
+    expect(s.answererId).toBe("p1"); // late arrivals cannot enter this round's answer line
+    clearBoard(s);
+    applyHostAction(s, { type: "next_round" });
+    expect(project(s, { role: "player", playerId: "p6", isHost: false }).myJoinsNextRound).toBe(false);
+  });
+
+  it("does not admit a new player after the game ends", () => {
+    const s = setup();
+    applyHostAction(s, { type: "end_game" });
+    expect(joinPlayer(s, "late", "Late", "diamond", false).ok).toBe(false);
+  });
+});
+
 describe("faceoff", () => {
   it("gives the first rep a face-off answer chance before awarding control", () => {
     const s = setup();

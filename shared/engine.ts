@@ -82,7 +82,8 @@ export function joinPlayer(
   teamId: string,
   claimCaptain: boolean,
 ): EngineResult {
-  if (state.phase !== "lobby") return fail("Teams are locked — the game has started");
+  if (state.phase === "game_over") return fail("This game has ended");
+  if (claimCaptain && state.phase !== "lobby") return fail("Captains are locked for this game");
   if (state.players[playerId]) return ok; // idempotent
   const trimmed = name.trim().slice(0, MAX_NAME_LENGTH);
   if (!trimmed) return fail("Name required");
@@ -93,7 +94,10 @@ export function joinPlayer(
   if (team.players.length >= MAX_TEAM_PLAYERS) return fail("That team is full — choose another");
   if (claimCaptain && team.captainId) return fail("That team already has a captain");
 
-  state.players[playerId] = { id: playerId, name: trimmed, teamId, connected: true };
+  // Arrivals during a live round join in order, but never get inserted into
+  // a face-off or an answer line already in progress.
+  const eligibleFromRound = state.phase === "lobby" ? state.roundIndex : state.roundIndex + 1;
+  state.players[playerId] = { id: playerId, name: trimmed, teamId, connected: true, eligibleFromRound };
   team.players.push(playerId);
   if (claimCaptain) team.captainId = playerId;
   return ok;
@@ -174,21 +178,27 @@ function resetFaceoff(state: GameState): void {
 }
 
 /** The controlling team answers down the line; advance and restart the answer clock. */
+function eligibleThisRound(state: GameState, playerId: string): boolean {
+  // Undefined is for rooms persisted before late joins were introduced.
+  return (state.players[playerId]?.eligibleFromRound ?? 0) <= state.roundIndex;
+}
+
 function advanceAnswerer(state: GameState): void {
   state.answerHeard = false;
   const team = state.controllingTeamId ? state.teams[state.controllingTeamId] : null;
-  if (!team || team.players.length === 0) {
+  const line = team?.players.filter((id) => eligibleThisRound(state, id)) ?? [];
+  if (line.length === 0) {
     state.answererId = null;
     clearTimer(state);
     return;
   }
-  const cur = state.answererId ? team.players.indexOf(state.answererId) : -1;
-  const hasConnectedPlayer = team.players.some((id) => state.players[id]?.connected);
+  const cur = state.answererId ? line.indexOf(state.answererId) : -1;
+  const hasConnectedPlayer = line.some((id) => state.players[id]?.connected);
   // Preserve join-order rotation, but do not burn the clock on an offline
   // teammate while anyone from the team is available. If nobody is connected,
   // keep a normal turn live so a reconnect can still answer it.
-  for (let offset = 1; offset <= team.players.length; offset++) {
-    const candidate = team.players[(cur + offset) % team.players.length];
+  for (let offset = 1; offset <= line.length; offset++) {
+    const candidate = line[(cur + offset) % line.length];
     if (!hasConnectedPlayer || state.players[candidate]?.connected) {
       state.answererId = candidate;
       state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
@@ -265,11 +275,13 @@ function loadNextQuestion(state: GameState): void {
 /** Reps rotate by round so everyone eventually faces off. */
 function assignReps(state: GameState): void {
   for (const team of Object.values(state.teams)) {
+    const eligible = team.players.filter((id) => eligibleThisRound(state, id));
     const manual = state.reps[team.id];
-    if (manual && team.players.includes(manual)) continue;
-    // rotate with the round so everyone eventually faces off
-    const idx = state.roundIndex % Math.max(team.players.length, 1);
-    state.reps[team.id] = team.players[idx] ?? null;
+    if (manual && eligible.includes(manual)) continue;
+    // Rotate with the round so everyone eventually faces off. Late arrivals
+    // enter this queue only when their next round begins.
+    const idx = state.roundIndex % Math.max(eligible.length, 1);
+    state.reps[team.id] = eligible[idx] ?? null;
   }
 }
 
@@ -536,6 +548,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       fresh.teams = state.teams;
       fresh.players = state.players;
       fresh.selectedQuestionIds = state.selectedQuestionIds ?? fresh.selectedQuestionIds;
+      for (const player of Object.values(fresh.players)) player.eligibleFromRound = 0;
       for (const t of Object.values(fresh.teams)) t.score = 0;
       Object.assign(state, fresh);
       return ok;

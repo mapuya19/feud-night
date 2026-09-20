@@ -59,7 +59,9 @@ function JoinScreen({
   const [teamId, setTeamId] = useState<string | null>(null);
   const [claimCaptain, setClaimCaptain] = useState(false);
   const selected = state.teams.find((team) => team.id === teamId);
-  const captainAvailable = !!selected && !selected.captainName;
+  const isLateJoin = state.phase !== "lobby" && state.phase !== "game_over";
+  const captainAvailable = !isLateJoin && !!selected && !selected.captainName;
+  if (state.phase === "game_over") return <Centered fullScreen>🏆 This game has ended — ask the host to start a new one.</Centered>;
   return (
     <div className="phone-shell mx-auto flex w-full max-w-md flex-col justify-center gap-6">
       <div className="text-center">
@@ -67,13 +69,15 @@ function JoinScreen({
           Feud{" "}
           <span className="bg-gradient-to-r from-gold via-gold-soft to-tangerine bg-clip-text text-transparent">Night</span>
         </h1>
-        <p className="mt-2 text-sm text-paper/50">Pick your squad before the host locks the roster.</p>
+        <p className="mt-2 text-sm text-paper/50">
+          {isLateJoin ? "Join a squad now — you’ll be added to the back of its line for the next round." : "Pick your squad before the host locks the roster."}
+        </p>
       </div>
       <form
         className="flex w-full flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (name.trim() && teamId) onJoin(name, teamId, claimCaptain && captainAvailable);
+          if (name.trim() && teamId) onJoin(name, teamId, !isLateJoin && claimCaptain && captainAvailable);
         }}
       >
         <input
@@ -114,7 +118,7 @@ function JoinScreen({
             );
           })}
         </div>
-        {selected && (
+        {!isLateJoin && selected && (
           <label className={cn("flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs", captainAvailable ? "border-gold/20 bg-gold/[0.06] text-paper/65" : "border-white/10 text-white/35")}>
             <input
               type="checkbox"
@@ -126,7 +130,7 @@ function JoinScreen({
           </label>
         )}
         <Button type="submit" variant="gold" disabled={!teamId || !name.trim()} className="w-full py-4 text-base">
-          Join {selected?.name ?? "a team"}
+          {isLateJoin ? "Join for next round" : `Join ${selected?.name ?? "a team"}`}
         </Button>
       </form>
     </div>
@@ -165,6 +169,17 @@ function useTeam(): PublicState["teams"][number] | null {
 
 function PhasePanel({ state }: { state: PublicState }) {
   const { playerId, playerAction } = useFeud();
+  if (state.myJoinsNextRound) {
+    const team = state.teams.find((candidate) => candidate.id === state.myTeamId);
+    return (
+      <Centered>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <span className="display text-2xl text-gold">You’re on {team?.name ?? "a team"}!</span>
+          <span className="text-white/55">You joined mid-round, so you’re at the back of the line for the next face-off.</span>
+        </div>
+      </Centered>
+    );
+  }
   switch (state.phase) {
     case "lobby":
       return <LobbyPanel state={state} />;

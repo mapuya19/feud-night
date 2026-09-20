@@ -78,6 +78,8 @@ export interface PublicState {
   myTeamId: string | null;
   myIsCaptain: boolean;
   myIsRep: boolean;
+  /** A player who arrived mid-round waits until the next round's face-off. */
+  myJoinsNextRound: boolean;
   teams: PublicTeam[];
   players:
     | { id: string; name: string; teamId: string; connected: boolean; isCaptain: boolean; isRep: boolean }[]
@@ -205,6 +207,8 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     myTeamId: myTeamId,
     myIsCaptain,
     myIsRep,
+    myJoinsNextRound:
+      !!viewer.playerId && (state.players[viewer.playerId]?.eligibleFromRound ?? 0) > state.roundIndex,
     teams,
     players,
     questionSelection,
