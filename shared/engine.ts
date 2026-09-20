@@ -38,6 +38,8 @@ export function createGame(
   teamCount: number = TEAM_DEFAULTS.length,
 ): GameState {
   const count = clampTeamCount(teamCount);
+  const questionPool = shuffle(pool);
+  const selectedQuestionIds = questionPool.slice(0, Math.min(ROUND_MULTIPLIERS.length, questionPool.length)).map((q) => q.id);
   const teams: Record<string, Team> = {};
   for (const t of TEAM_DEFAULTS.slice(0, count)) {
     teams[t.id] = { ...t, name: String(t.name), score: 0, captainId: null, players: [] };
@@ -49,7 +51,8 @@ export function createGame(
     lastActivityAt: Date.now(),
     phase: "lobby",
     roundIndex: 0,
-    questionPool: shuffle(pool),
+    questionPool,
+    selectedQuestionIds,
     questionCursor: 0,
     teams,
     players: {},
@@ -241,7 +244,12 @@ function resolveTiebreak(state: GameState): void {
 /** Pick the next question from the pool (cycles if exhausted) and reset per-question state. */
 function loadNextQuestion(state: GameState): void {
   if (state.questionPool.length === 0) return;
-  const q = state.questionPool[state.questionCursor % state.questionPool.length];
+  // Fallback keeps rooms created before board selection working after deploy.
+  const selected = (state.selectedQuestionIds ?? [])
+    .map((id) => state.questionPool.find((question) => question.id === id))
+    .filter((question): question is SurveyQuestion => !!question);
+  const boards = selected.length > 0 ? selected : state.questionPool;
+  const q = boards[state.questionCursor % boards.length];
   state.questionCursor++;
   state.question = q;
   state.revealed = q.answers.map(() => false);
@@ -301,6 +309,9 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
     case "start_game": {
       if (state.phase !== "lobby") return fail("Game already started");
       const teams = Object.values(state.teams);
+      const requiredBoards = Math.min(ROUND_MULTIPLIERS.length, state.questionPool.length);
+      const selectedBoards = state.selectedQuestionIds ?? state.questionPool.slice(0, requiredBoards).map((question) => question.id);
+      if (selectedBoards.length !== requiredBoards) return fail(`Choose ${requiredBoards} boards before starting`);
       if (teams.some((team) => team.players.length === 0)) return fail("Every team needs at least one player");
       if (teams.some((team) => !team.captainId)) return fail("Every team needs a captain");
       return startRound(state, 0);
@@ -440,6 +451,25 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       return ok;
     }
 
+    case "set_questions": {
+      if (state.phase !== "lobby") return fail("Boards lock when the game starts");
+      const ids = action.questionIds;
+      if (ids.length === 0 || ids.length > state.questionPool.length) return fail("Choose at least one valid board");
+      if (new Set(ids).size !== ids.length || ids.some((id) => !state.questionPool.some((question) => question.id === id)))
+        return fail("Choose valid boards only once");
+      state.selectedQuestionIds = [...ids];
+      state.questionCursor = 0;
+      return ok;
+    }
+
+    case "shuffle_questions": {
+      if (state.phase !== "lobby") return fail("Boards lock when the game starts");
+      const count = Math.min(ROUND_MULTIPLIERS.length, state.questionPool.length);
+      state.selectedQuestionIds = shuffle(state.questionPool).slice(0, count).map((question) => question.id);
+      state.questionCursor = 0;
+      return ok;
+    }
+
     case "set_team_count": {
       if (state.phase !== "lobby") return fail("Teams lock when the game starts");
       const count = clampTeamCount(action.count);
@@ -505,6 +535,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       // keep teams & players so the room stays usable
       fresh.teams = state.teams;
       fresh.players = state.players;
+      fresh.selectedQuestionIds = state.selectedQuestionIds ?? fresh.selectedQuestionIds;
       for (const t of Object.values(fresh.teams)) t.score = 0;
       Object.assign(state, fresh);
       return ok;

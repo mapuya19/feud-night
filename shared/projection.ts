@@ -53,6 +53,12 @@ export interface PublicTiebreak {
   winnerTeamId: string | null;
 }
 
+export interface PublicQuestionSelection {
+  available: { id: string; prompt: string }[];
+  selectedQuestionIds: string[];
+  requiredCount: number;
+}
+
 export interface PublicAnswerer {
   name: string;
   position: number; // 1-based spot in the line
@@ -76,6 +82,7 @@ export interface PublicState {
   players:
     | { id: string; name: string; teamId: string; connected: boolean; isCaptain: boolean; isRep: boolean }[]
     | null; // host only
+  questionSelection: PublicQuestionSelection | null; // host only, prompts never answers
   question: { prompt: string | null; slots: PublicSlot[]; bank: number } | null;
   strikes: number;
   buzzWinnerName: string | null;
@@ -122,6 +129,15 @@ export function project(state: GameState, viewer: Viewer): PublicState {
         isCaptain: state.teams[p.teamId]?.captainId === p.id,
         isRep: (state.reps[p.teamId] ?? null) === p.id,
       }))
+    : null;
+
+  const questionSelection: PublicQuestionSelection | null = viewer.isHost
+    ? {
+        available: state.questionPool.map((question) => ({ id: question.id, prompt: question.prompt })),
+        selectedQuestionIds:
+          state.selectedQuestionIds ?? state.questionPool.slice(0, Math.min(ROUND_MULTIPLIERS.length, state.questionPool.length)).map((question) => question.id),
+        requiredCount: Math.min(ROUND_MULTIPLIERS.length, state.questionPool.length),
+      }
     : null;
 
   let question: PublicState["question"] = null;
@@ -191,6 +207,7 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     myIsRep,
     teams,
     players,
+    questionSelection,
     question,
     strikes: state.strikes,
     buzzWinnerName: state.buzzWinnerId ? state.players[state.buzzWinnerId]?.name ?? null : null,

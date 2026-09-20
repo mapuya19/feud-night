@@ -116,6 +116,22 @@ describe("lobby", () => {
     expect(clampTeamCount(50)).toBe(MAX_TEAMS);
   });
 
+  it("lets the host pick five boards or shuffle a fresh five in the lobby", () => {
+    const s = setup();
+    expect(s.selectedQuestionIds).toHaveLength(5);
+    expect(applyHostAction(s, { type: "set_questions", questionIds: ["q6", "q5", "q4", "q3", "q2"] }).ok).toBe(true);
+    expect(s.selectedQuestionIds).toEqual(["q6", "q5", "q4", "q3", "q2"]);
+    expect(applyHostAction(s, { type: "start_game" }).ok).toBe(true);
+    expect(s.question?.id).toBe("q6");
+    expect(applyHostAction(s, { type: "shuffle_questions" }).ok).toBe(false); // boards lock after start
+
+    const incomplete = setup();
+    expect(applyHostAction(incomplete, { type: "set_questions", questionIds: ["q1", "q2", "q3", "q4"] }).ok).toBe(true);
+    expect(applyHostAction(incomplete, { type: "start_game" }).ok).toBe(false);
+    expect(applyHostAction(incomplete, { type: "shuffle_questions" }).ok).toBe(true);
+    expect(incomplete.selectedQuestionIds).toHaveLength(5);
+  });
+
   it("allows lobby team switches but rejects them after the host locks teams", () => {
     const s = setup();
     expect(applyPlayerAction(s, "p5", { type: "choose_team", teamId: "platinum" }).ok).toBe(true);
@@ -501,7 +517,9 @@ describe("projection privacy", () => {
     expect(player.question!.slots[0].text).toBe(s.question!.answers[0].text);
     expect(player.myTeamId).toBe("pearl");
     expect(host.players!.length).toBe(5);
+    expect(host.questionSelection?.available).toHaveLength(6);
     expect(player.players).toBeNull();
+    expect(player.questionSelection).toBeNull();
   });
 
   it("hides steal submissions cross-team until reveal", () => {

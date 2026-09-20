@@ -77,8 +77,9 @@ export interface GameState {
   lastActivityAt: number;
   phase: Phase;
   roundIndex: number; // 0..ROUNDS.length-1
-  questionPool: SurveyQuestion[]; // shuffled
-  questionCursor: number; // next index into pool
+  questionPool: SurveyQuestion[]; // private shuffled catalog for this room
+  selectedQuestionIds: string[]; // host-picked boards for the five-round game
+  questionCursor: number; // next index into the selected boards
   teams: Record<string, Team>;
   players: Record<string, Player>;
   // current question

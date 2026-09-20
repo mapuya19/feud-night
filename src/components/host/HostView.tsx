@@ -151,7 +151,9 @@ function GameSnapshot({ state, code }: { state: PublicState; code: string }) {
 function LobbyHost({ state }: { state: PublicState }) {
   const { hostAction } = useFeud();
   const total = state.teams.reduce((n, t) => n + t.playerCount, 0);
-  const ready = state.teams.every((t) => t.playerCount > 0 && t.captainName);
+  const teamsReady = state.teams.every((t) => t.playerCount > 0 && t.captainName);
+  const boardsReady = state.questionSelection?.selectedQuestionIds.length === state.questionSelection?.requiredCount;
+  const ready = teamsReady && boardsReady;
   const count = state.teams.length;
   return (
     <section className="host-panel flex flex-col gap-4">
@@ -183,6 +185,7 @@ function LobbyHost({ state }: { state: PublicState }) {
       <p className="text-xs text-white/35">
         {count} teams · {count * MAX_TEAM_PLAYERS} player max ({MAX_TEAM_PLAYERS} per team). A team being removed must be empty first.
       </p>
+      <QuestionPicker state={state} />
       {state.teams.map((t) => (
         <TeamAdminRow key={t.id} state={state} teamId={t.id} />
       ))}
@@ -192,9 +195,68 @@ function LobbyHost({ state }: { state: PublicState }) {
         disabled={!ready}
         onClick={() => hostAction({ type: "start_game" })}
       >
-        {!ready ? "Each team needs 1+ player and a captain" : "🔒 Lock teams & start the Feud"}
+        {!teamsReady
+          ? "Each team needs 1+ player and a captain"
+          : !boardsReady
+            ? `Choose ${state.questionSelection?.requiredCount ?? 5} boards to start`
+            : "🔒 Lock teams & start the Feud"}
       </Button>
     </section>
+  );
+}
+
+function QuestionPicker({ state }: { state: PublicState }) {
+  const { hostAction } = useFeud();
+  const selection = state.questionSelection;
+  if (!selection) return null;
+  const selected = selection.selectedQuestionIds;
+  const toggle = (id: string) => {
+    const next = selected.includes(id) ? selected.filter((questionId) => questionId !== id) : [...selected, id];
+    hostAction({ type: "set_questions", questionIds: next });
+  };
+  return (
+    <div className="rounded-2xl border border-neon/25 bg-neon/[0.045] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span className="label text-neon">Boards for this game</span>
+          <p className="mt-1 text-sm text-white/60">Pick {selection.requiredCount}, or shuffle a fresh set for the next birthday-game run.</p>
+        </div>
+        <Button variant="ghost" onClick={() => hostAction({ type: "shuffle_questions" })}>
+          ↻ Shuffle {selection.requiredCount}
+        </Button>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-xs">
+        <span className={selected.length === selection.requiredCount ? "text-emerald-300" : "text-gold"}>
+          {selected.length}/{selection.requiredCount} selected
+        </span>
+        <span className="text-white/35">{selection.available.length} available</span>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {selection.available.map((question) => {
+          const index = selected.indexOf(question.id);
+          const isSelected = index >= 0;
+          return (
+            <button
+              key={question.id}
+              type="button"
+              disabled={!isSelected && selected.length >= selection.requiredCount}
+              onClick={() => toggle(question.id)}
+              className={cn(
+                "min-h-14 rounded-xl border px-3 py-2 text-left text-sm transition",
+                isSelected ? "border-neon/55 bg-neon/10 text-white" : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.07]",
+                !isSelected && selected.length >= selection.requiredCount && "cursor-not-allowed opacity-35",
+              )}
+              aria-pressed={isSelected}
+            >
+              <span className={cn("mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px]", isSelected ? "bg-neon text-ink" : "bg-white/10 text-white/35")}>
+                {isSelected ? index + 1 : ""}
+              </span>
+              {question.prompt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

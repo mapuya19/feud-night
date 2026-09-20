@@ -25,6 +25,8 @@ export type HostAction =
   | { type: "continue_tiebreak" }
   | { type: "set_captain"; teamId: string; playerId: string }
   | { type: "set_team_count"; count: number }
+  | { type: "set_questions"; questionIds: string[] }
+  | { type: "shuffle_questions" }
   | { type: "move_player"; playerId: string; teamId: string }
   | { type: "set_rep"; teamId: string; playerId: string }
   | { type: "set_team_name"; teamId: string; name: string }
