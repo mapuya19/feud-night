@@ -112,8 +112,16 @@ function movePlayerToTeam(state: GameState, playerId: string, teamId: string): E
 export function setConnected(state: GameState, playerId: string, connected: boolean): void {
   const p = state.players[playerId];
   if (p && p.connected !== connected) p.connected = connected;
-  // Don't let the game stall on a disconnected answerer.
-  if (p && !connected && state.phase === "playing" && state.answererId === playerId) {
+  // A submitted answer remains with the host even if its player drops. Only
+  // pass the mic when the active player disconnected before submitting.
+  if (
+    p &&
+    !connected &&
+    state.phase === "playing" &&
+    state.answererId === playerId &&
+    state.timer?.kind === "answer" &&
+    !state.pendingAnswer
+  ) {
     advanceAnswerer(state);
   }
 }
@@ -147,8 +155,18 @@ function advanceAnswerer(state: GameState): void {
     return;
   }
   const cur = state.answererId ? team.players.indexOf(state.answererId) : -1;
-  state.answererId = team.players[(cur + 1) % team.players.length];
-  state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
+  const hasConnectedPlayer = team.players.some((id) => state.players[id]?.connected);
+  // Preserve join-order rotation, but do not burn the clock on an offline
+  // teammate while anyone from the team is available. If nobody is connected,
+  // keep a normal turn live so a reconnect can still answer it.
+  for (let offset = 1; offset <= team.players.length; offset++) {
+    const candidate = team.players[(cur + offset) % team.players.length];
+    if (!hasConnectedPlayer || state.players[candidate]?.connected) {
+      state.answererId = candidate;
+      state.timer = { kind: "answer", endsAt: Date.now() + ANSWER_DURATION_MS, durationMs: ANSWER_DURATION_MS };
+      return;
+    }
+  }
 }
 
 /** Three strikes: every opposing captain huddles for one secret steal answer. */
@@ -202,6 +220,8 @@ function awardBank(state: GameState, teamId: string, reason: "clear" | "steal" |
   state.teams[teamId].score += pts;
   state.lastAward = { teamId, points: pts, reason };
   state.phase = "round_over";
+  state.answererId = null;
+  state.pendingAnswer = null;
   clearTimer(state);
   return ok;
 }
@@ -375,6 +395,8 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
         const leader = Object.values(state.teams).sort((a, b) => b.score - a.score)[0];
         state.winnerTeamId = leader?.id ?? null;
       }
+      state.answererId = null;
+      state.pendingAnswer = null;
       clearTimer(state);
       return ok;
     }
@@ -440,6 +462,8 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
         const up = state.answererId ? state.players[state.answererId]?.name : null;
         return fail(up ? `It's ${up}'s turn — answers go down the line` : "No answerer is up");
       }
+      if (state.pendingAnswer) return fail("That answer is already awaiting the host");
+      if (state.timer?.kind !== "answer" || Date.now() >= state.timer.endsAt) return fail("Time is up");
       const text = action.text.trim().slice(0, MAX_ANSWER_LENGTH);
       if (!text) return fail("Empty answer");
       state.pendingAnswer = { text, by: playerId, byName: player.name, at: Date.now() };

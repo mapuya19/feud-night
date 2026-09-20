@@ -25,7 +25,7 @@ export const TEAM_DEFAULTS = [
 export const MIN_TEAMS = 2;
 export const MAX_TEAMS = TEAM_DEFAULTS.length;
 
-/** Per-team cap; room capacity = teamCount × this (16–32 players). */
+/** Per-team cap; room capacity = teamCount × this (16–40 players). */
 export const MAX_TEAM_PLAYERS = 8;
 
 export const MAX_NAME_LENGTH = 16;

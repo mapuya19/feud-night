@@ -341,7 +341,7 @@ function PlayingPanel({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- playing
 
 function AnswererPad() {
-  const { state, playerAction } = useFeud();
+  const { state, playerAction, serverOffsetMs } = useFeud();
   const [text, setText] = useState("");
   const pending = state?.pendingAnswer;
   const answerer = state?.answerer;
@@ -351,7 +351,7 @@ function AnswererPad() {
       <span className="text-xs uppercase tracking-widest text-neon">🎤 you&apos;re up — give the official answer</span>
       {answerer?.endsAt && (
         <div className="display text-center text-3xl text-gold">
-          <Countdown endsAt={answerer.endsAt} offsetMs={0} />
+          <Countdown endsAt={answerer.endsAt} offsetMs={serverOffsetMs} />
         </div>
       )}
       <form
@@ -364,8 +364,9 @@ function AnswererPad() {
         }}
       >
         <input
-          value={pending ? pending.text : text}
+          value={text}
           onChange={(e) => setText(e.target.value)}
+          disabled={!!pending}
           maxLength={60}
           placeholder="Your answer…"
           autoCapitalize="sentences"
@@ -373,7 +374,7 @@ function AnswererPad() {
           aria-label="Official answer"
           className="field min-w-0 flex-1 font-semibold focus:border-neon/70 focus:ring-neon/25"
         />
-        <Button variant="gold" type="submit" disabled={!text.trim() && !pending}>
+        <Button variant="gold" type="submit" disabled={!!pending || !text.trim()}>
           Send it
         </Button>
       </form>

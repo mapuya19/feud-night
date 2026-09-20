@@ -252,7 +252,12 @@ export class FeudRoom extends DurableObject {
     if (!this.state) return;
     const att = readAttachment(ws);
     if (att?.playerId) {
-      setConnected(this.state, att.playerId, false);
+      // A player can legitimately have two tabs or be mid-reconnect. Closing
+      // one socket must not mark them offline or skip their answer turn.
+      const stillConnected = this.ctx
+        .getWebSockets()
+        .some((socket) => socket !== ws && readAttachment(socket)?.playerId === att.playerId);
+      setConnected(this.state, att.playerId, stillConnected);
       await this.persist();
       this.broadcast();
     }

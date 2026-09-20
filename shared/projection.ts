@@ -176,7 +176,7 @@ export function project(state: GameState, viewer: Viewer): PublicState {
         durationMs: state.timer?.kind === "answer" ? state.timer.durationMs : ANSWER_DURATION_MS,
       };
     })(),
-    myIsAnswerer: !!state.answererId && state.answererId === viewer.playerId,
+    myIsAnswerer: state.phase === "playing" && !!state.answererId && state.answererId === viewer.playerId,
     pendingAnswer:
       viewer.isHost || isControllingTeam
         ? state.pendingAnswer

@@ -47,6 +47,7 @@ export default {
     if (url.pathname === "/health") return json({ ok: true });
 
     if (url.pathname === "/create" && request.method === "POST") {
+      const body = (await request.json().catch(() => ({}))) as { teamCount?: number };
       const hostToken = crypto.randomUUID().replace(/-/g, "");
       for (let attempt = 0; attempt < 5; attempt++) {
         const roomCode = code();
@@ -55,7 +56,7 @@ export default {
           const res = await roomStub(env, roomCode).fetch(`https://do/room/${roomCode}/create`, {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ hostToken }),
+            body: JSON.stringify({ hostToken, teamCount: body.teamCount }),
           });
           if (res.ok) return json({ code: roomCode, hostToken });
         }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyHostAction, applyPlayerAction, clampTeamCount, createGame, expireTimer, joinPlayer } from "@shared/engine";
+import { applyHostAction, applyPlayerAction, clampTeamCount, createGame, expireTimer, joinPlayer, setConnected } from "@shared/engine";
 import { project } from "@shared/projection";
 import type { GameState, SurveyQuestion } from "@shared/types";
 import { MAX_TEAM_PLAYERS, MAX_TEAMS, MIN_TEAMS } from "@shared/config";
@@ -183,6 +183,21 @@ describe("answers & scoring", () => {
     expect(s.lastAward?.reason).toBe("clear");
   });
 
+  it("rejects late and duplicate answers without replacing the official answer", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    s.timer!.endsAt = Date.now() - 1;
+    expect(applyPlayerAction(s, "p1", { type: "submit_answer", text: "too late" }).ok).toBe(false);
+    expect(s.pendingAnswer).toBeNull();
+    expect(s.timer?.kind).toBe("answer");
+
+    s.timer!.endsAt = Date.now() + 10_000;
+    expect(applyPlayerAction(s, "p1", { type: "submit_answer", text: "first" }).ok).toBe(true);
+    expect(applyPlayerAction(s, "p1", { type: "submit_answer", text: "replacement" }).ok).toBe(false);
+    expect(s.pendingAnswer?.text).toBe("first");
+  });
+
   it("answer timeout is a strike and passes the mic to the next player in line", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });
@@ -194,6 +209,33 @@ describe("answers & scoring", () => {
     expect(expireTimer(s)).toBe(true);
     expect(s.strikes).toBe(3);
     expect(s.phase).toBe("steal");
+  });
+
+  it("does not discard a submitted answer on disconnect and skips unavailable players", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    applyPlayerAction(s, "p1", { type: "submit_answer", text: "A1" });
+    setConnected(s, "p1", false);
+    expect(s.pendingAnswer?.text).toBe("A1");
+    expect(s.answererId).toBe("p1");
+    expect(s.timer).toBeNull();
+    applyHostAction(s, { type: "reveal_answer", slot: 0 });
+    expect(s.answererId).toBe("p5");
+
+    const next = setup();
+    applyHostAction(next, { type: "start_game" });
+    applyPlayerAction(next, "p1", { type: "buzz" });
+    setConnected(next, "p5", false);
+    applyHostAction(next, { type: "reveal_answer", slot: 0 });
+    expect(next.answererId).toBe("p1"); // skip disconnected p5
+
+    const unanswered = setup();
+    applyHostAction(unanswered, { type: "start_game" });
+    applyPlayerAction(unanswered, "p1", { type: "buzz" });
+    setConnected(unanswered, "p1", false);
+    expect(unanswered.answererId).toBe("p5"); // pass an unanswered disconnected player
+    expect(unanswered.timer?.kind).toBe("answer");
   });
 
   it("rounds 3-4 are double points", () => {
