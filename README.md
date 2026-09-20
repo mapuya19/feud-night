@@ -14,8 +14,8 @@ round so everyone gets a face-off moment.
 
 **Roles.** Each team has two separate roles: the **face-off rep** is the only
 player who can buzz that round (it rotates automatically; host can override
-it), while the **captain** locks the team&apos;s official answer and submits its
-steal. The host can change either role from the private console.
+it), while the **captain** submits its secret steal and plays any steal
+rock-paper-scissors tie-break. Main-board answers rotate through every player.
 
 **Rounds 1–5** (rounds 3–4 are double points; round 5 is the final triple-points board):
 
@@ -27,10 +27,10 @@ steal. The host can change either role from the private console.
    timeout counts as a strike and the mic passes on.
 3. **Steal** — after 3 strikes, all opposing teams get a 15-second huddle.
    Each **captain secretly submits one steal answer** from their phone.
-   Answers reveal simultaneously on the TV; the host judges each. **If multiple
-   steal answers are correct, the higher-ranked (higher-point) survey answer wins
-   the bank.** Matched steals reveal on the board and the winner banks
-   everything.
+   Answers reveal simultaneously on the TV; the host judges each. **The
+   highest-ranked survey answer wins the bank; if multiple teams match that same
+   top answer, their captains throw simultaneous rock-paper-scissors until one
+   team wins.** Matched steals reveal on the board and the winner banks everything.
 4. **Final Board** — after four rounds, every team gets one last full
    face-off / play / steal board worth **triple points**. The highest score
    after that board wins the night.

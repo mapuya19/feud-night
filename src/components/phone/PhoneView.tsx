@@ -176,6 +176,10 @@ function PhasePanel({ state }: { state: PublicState }) {
       return <StealPanel state={state} />;
     case "steal_reveal":
       return <StealRevealPanel state={state} />;
+    case "steal_tiebreak":
+      return <TiebreakPanel state={state} />;
+    case "steal_tiebreak_reveal":
+      return <TiebreakRevealPanel state={state} />;
     case "round_over":
       return (
         <Centered>
@@ -379,6 +383,67 @@ function AnswererPad() {
         </Button>
       </form>
       {pending && <span role="status" className="text-center text-xs text-white/40">“{pending.text}” is in — awaiting host…</span>}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------- tie-break
+
+const RPS_LABELS = { rock: "✊ Rock", paper: "✋ Paper", scissors: "✌️ Scissors" } as const;
+
+function TiebreakPanel({ state }: { state: PublicState }) {
+  const { playerAction, serverOffsetMs } = useFeud();
+  const myTeam = useTeam();
+  const tiebreak = state.tiebreak;
+  if (!tiebreak || !myTeam) return <Centered>Setting up the captain tie-break…</Centered>;
+  const isContender = tiebreak.contenderTeamIds.includes(myTeam.id);
+  if (!isContender) {
+    return <Centered><span className="display text-xl text-white/55">🎲 Other captains are settling the steal tie.</span></Centered>;
+  }
+  if (!state.myIsCaptain) {
+    return <Centered><span className="display text-xl text-gold">👑 Your captain throws for {myTeam.name}.</span></Centered>;
+  }
+  if (tiebreak.myChoice) {
+    return (
+      <Centered>
+        <div className="flex flex-col items-center gap-3">
+          <span className="display text-2xl text-emerald-300">🔒 Throw locked</span>
+          <span className="text-sm text-white/50">Waiting for the other captain{tiebreak.contenderTeamIds.length === 2 ? "…" : "s…"}</span>
+          {tiebreak.endsAt && <Countdown endsAt={tiebreak.endsAt} offsetMs={serverOffsetMs} className="text-4xl" />}
+        </div>
+      </Centered>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border border-gold/40 bg-gold/10 p-4 text-center">
+        <span className="display block text-2xl text-gold">🎲 CAPTAIN RPS · THROW {tiebreak.round}</span>
+        <span className="mt-1 block text-sm text-white/55">Pick secretly. All captains reveal together.</span>
+        {tiebreak.endsAt && <Countdown endsAt={tiebreak.endsAt} offsetMs={serverOffsetMs} className="mt-2 text-4xl" />}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {(Object.keys(RPS_LABELS) as (keyof typeof RPS_LABELS)[]).map((choice) => (
+          <Button key={choice} variant="primary" className="min-h-24 flex-col px-2 text-base" onClick={() => playerAction({ type: "submit_rps", choice })}>
+            {RPS_LABELS[choice]}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TiebreakRevealPanel({ state }: { state: PublicState }) {
+  const tiebreak = state.tiebreak;
+  if (!tiebreak) return <Centered>Revealing the throws…</Centered>;
+  const winner = tiebreak.winnerTeamId ? state.teams.find((team) => team.id === tiebreak.winnerTeamId) : null;
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-neon/35 bg-neon/[0.06] p-4 text-center">
+      <span className="display text-2xl text-neon">🎲 RPS THROW {tiebreak.round}</span>
+      {tiebreak.choices?.map((choice) => {
+        const team = state.teams.find((candidate) => candidate.id === choice.teamId);
+        return <span key={choice.teamId} className="display text-lg" style={{ color: team?.color }}>{team?.name}: {RPS_LABELS[choice.choice]}</span>;
+      })}
+      <span className="text-sm text-white/60">{winner ? `${winner.name} wins the tie-break!` : "Tie again — the host will start another throw."}</span>
     </div>
   );
 }

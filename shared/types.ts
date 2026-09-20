@@ -8,6 +8,8 @@ export type Phase =
   | "playing" // controlling team answers the board
   | "steal" // 3 strikes; every opposing team huddles + secretly submits
   | "steal_reveal" // all steal answers shown; host judges
+  | "steal_tiebreak" // tied captains secretly throw rock-paper-scissors
+  | "steal_tiebreak_reveal" // RPS throws shown; host awards or starts a rethrow
   | "round_over" // bank awarded; host advances
   | "game_over";
 
@@ -51,8 +53,17 @@ export interface StealSubmission {
   at: number;
 }
 
+export type RpsChoice = "rock" | "paper" | "scissors";
+
+export interface RpsTiebreak {
+  contenders: string[]; // team IDs still tied after a throw
+  choices: { teamId: string; choice: RpsChoice }[];
+  round: number;
+  winnerTeamId: string | null;
+}
+
 export interface Timer {
-  kind: "steal" | "answer";
+  kind: "steal" | "answer" | "rps";
   endsAt: number; // epoch ms (server clock)
   durationMs: number;
 }
@@ -81,6 +92,7 @@ export interface GameState {
     submissions: StealSubmission[];
     results: { teamId: string; text: string; slot: number | null }[] | null;
   } | null;
+  tiebreak: RpsTiebreak | null;
   timer: Timer | null;
   lastAward: { teamId: string; points: number; reason: "clear" | "steal" | "failed_steal" } | null;
   winnerTeamId: string | null;

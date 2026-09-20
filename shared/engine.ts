@@ -2,6 +2,7 @@ import {
   ROUND_MULTIPLIERS,
   STEAL_DURATION_MS,
   ANSWER_DURATION_MS,
+  RPS_DURATION_MS,
   STRIKES_TO_STEAL,
   TEAM_DEFAULTS,
   MAX_ANSWER_LENGTH,
@@ -10,7 +11,7 @@ import {
   MAX_TEAMS,
   MIN_TEAMS,
 } from "./config";
-import type { GameState, SurveyQuestion, Team } from "./types";
+import type { GameState, RpsChoice, SurveyQuestion, Team } from "./types";
 import type { HostAction, PlayerAction } from "./protocol";
 
 export interface EngineResult {
@@ -60,6 +61,7 @@ export function createGame(
     answererId: null,
     pendingAnswer: null,
     steal: null,
+    tiebreak: null,
     timer: null,
     lastAward: null,
     winnerTeamId: null,
@@ -173,9 +175,43 @@ function advanceAnswerer(state: GameState): void {
 function beginSteal(state: GameState): void {
   state.phase = "steal";
   state.steal = { submissions: [], results: null };
+  state.tiebreak = null;
   state.answererId = null;
   state.pendingAnswer = null;
   state.timer = { kind: "steal", endsAt: Date.now() + STEAL_DURATION_MS, durationMs: STEAL_DURATION_MS };
+}
+
+const RPS_BEATS: Record<RpsChoice, RpsChoice> = { rock: "scissors", paper: "rock", scissors: "paper" };
+
+function startTiebreak(state: GameState, contenders: string[], round = 1): void {
+  state.phase = "steal_tiebreak";
+  state.tiebreak = { contenders, choices: [], round, winnerTeamId: null };
+  state.timer = { kind: "rps", endsAt: Date.now() + RPS_DURATION_MS, durationMs: RPS_DURATION_MS };
+}
+
+/** Reveal a simultaneous RPS throw. A shared winning shape rethrows among its teams. */
+function resolveTiebreak(state: GameState): void {
+  const tiebreak = state.tiebreak;
+  if (!tiebreak) return;
+  clearTimer(state);
+  const throwers = tiebreak.choices.map((choice) => choice.teamId);
+  const shapes = new Set(tiebreak.choices.map((choice) => choice.choice));
+  let winnerTeamId: string | null = null;
+  let nextContenders = throwers.length > 0 ? throwers : tiebreak.contenders;
+
+  if (tiebreak.choices.length === 1) {
+    winnerTeamId = tiebreak.choices[0].teamId;
+  } else if (shapes.size === 2) {
+    const [first, second] = [...shapes];
+    const winningShape = RPS_BEATS[first] === second ? first : second;
+    const winners = tiebreak.choices.filter((choice) => choice.choice === winningShape).map((choice) => choice.teamId);
+    if (winners.length === 1) winnerTeamId = winners[0];
+    else nextContenders = winners;
+  }
+  // One shape or all three shapes is a tie; the same contenders throw again.
+  tiebreak.contenders = nextContenders;
+  tiebreak.winnerTeamId = winnerTeamId;
+  state.phase = "steal_tiebreak_reveal";
 }
 
 /** Pick the next question from the pool (cycles if exhausted) and reset per-question state. */
@@ -189,6 +225,7 @@ function loadNextQuestion(state: GameState): void {
   state.pendingAnswer = null;
   state.answererId = null;
   state.steal = null;
+  state.tiebreak = null;
   clearTimer(state);
 }
 
@@ -325,20 +362,28 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
           state.revealed[r.slot] = true;
         }
       }
-      // Winner: correct steals compete on survey rank (higher points wins).
-      const correct = results
-        .filter((r) => r.slot !== null && state.question)
-        .sort((a, b) => {
-          const pa = state.question!.answers[a.slot!].points;
-          const pb = state.question!.answers[b.slot!].points;
-          return pb - pa;
-        });
+      // Correct steals compete on survey rank. When two teams match the same
+      // top answer, their captains settle the otherwise-network-speed tie with RPS.
+      const correct = results.filter((r) => r.slot !== null && state.question).sort((a, b) => a.slot! - b.slot!);
       if (correct.length > 0) {
+        const topSlot = correct[0].slot!;
+        const tiedTeams = correct.filter((r) => r.slot === topSlot).map((r) => r.teamId);
+        if (tiedTeams.length > 1) {
+          startTiebreak(state, tiedTeams);
+          return ok;
+        }
         return awardBank(state, correct[0].teamId, "steal");
       }
       const holder = state.controllingTeamId;
       if (holder) return awardBank(state, holder, "failed_steal");
       state.phase = "round_over";
+      return ok;
+    }
+
+    case "continue_tiebreak": {
+      if (state.phase !== "steal_tiebreak_reveal" || !state.tiebreak) return fail("No tie-break to continue");
+      if (state.tiebreak.winnerTeamId) return awardBank(state, state.tiebreak.winnerTeamId, "steal");
+      startTiebreak(state, state.tiebreak.contenders, state.tiebreak.round + 1);
       return ok;
     }
 
@@ -483,6 +528,18 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
       return ok;
     }
 
+    case "submit_rps": {
+      const tiebreak = state.tiebreak;
+      if (state.phase !== "steal_tiebreak" || !tiebreak) return fail("No RPS tie-break in progress");
+      if (state.timer?.kind !== "rps" || Date.now() >= state.timer.endsAt) return fail("RPS throw time is up");
+      if (team.captainId !== playerId || !tiebreak.contenders.includes(team.id)) return fail("Only a tied team captain can throw");
+      if (tiebreak.choices.some((choice) => choice.teamId === team.id)) return fail("Your throw is locked");
+      if (!(["rock", "paper", "scissors"] as const).includes(action.choice)) return fail("Invalid throw");
+      tiebreak.choices.push({ teamId: team.id, choice: action.choice });
+      if (tiebreak.choices.length === tiebreak.contenders.length) resolveTiebreak(state);
+      return ok;
+    }
+
     default:
       return fail("Unknown player action");
     }
@@ -522,6 +579,11 @@ export function expireTimer(state: GameState): boolean {
     } else {
       advanceAnswerer(state);
     }
+    return true;
+  }
+  if (kind === "rps") {
+    if (state.phase !== "steal_tiebreak" || !state.tiebreak) return false;
+    resolveTiebreak(state);
     return true;
   }
   return false;

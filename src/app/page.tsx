@@ -48,6 +48,20 @@ export default function Home() {
         </p>
       </header>
 
+      <button
+        type="button"
+        onClick={() => router.push("/rules")}
+        className="surface group grid w-full gap-4 p-6 text-left transition hover:-translate-y-0.5 hover:border-gold/40 hover:bg-gold/[0.06] md:grid-cols-[auto_1fr_auto] md:items-center"
+      >
+        <span className="display flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/35 bg-gold/10 text-3xl text-gold">?</span>
+        <span>
+          <span className="label text-gold">New here?</span>
+          <span className="display mt-1 block text-2xl text-white">View the rules &amp; gameplay flow</span>
+          <span className="mt-1 block text-sm text-paper/55">A spoiler-free card for the host, players, answer rotation, steals, and captain RPS tie-breaks.</span>
+        </span>
+        <span className="display text-lg text-gold transition group-hover:translate-x-1">Open guide →</span>
+      </button>
+
       <section className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="grid gap-4 sm:grid-cols-3">
           {[
@@ -58,7 +72,7 @@ export default function Home() {
             },
             {
               tag: "Survey says",
-              body: "Your team shouts answers from their phones; the captain locks one in. Three strikes gives the other teams a simultaneous steal — if multiple steals are right, the higher-ranked survey answer wins.",
+              body: "Answers rotate one player at a time with a 10-second clock. Three strikes gives the other teams a simultaneous steal; matching top steals go to the captains for rock-paper-scissors.",
               accent: "text-neon",
             },
             {
@@ -167,7 +181,7 @@ export default function Home() {
             <span className="label mb-2 block text-gold">Setup</span>
             Host creates a room on the laptop and picks 2–5 teams. The TV shows a
             QR code — guests scan, type a name, pick a team, and optionally claim
-            its provisional captain spot before the host locks the roster.
+            its provisional captain spot before the host locks the roster. Captains submit steals; main-board answers rotate through every player.
           </p>
           <p>
             <span className="label mb-2 block text-neon">Space</span>

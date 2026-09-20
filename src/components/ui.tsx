@@ -147,6 +147,8 @@ export const PHASE_LABEL: Record<string, string> = {
   playing: "Playing",
   steal: "Steal!",
   steal_reveal: "Steal Results",
+  steal_tiebreak: "Captain RPS",
+  steal_tiebreak_reveal: "RPS Result",
   round_over: "Round Over",
   game_over: "Game Over",
 };

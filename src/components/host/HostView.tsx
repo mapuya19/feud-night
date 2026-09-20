@@ -28,6 +28,8 @@ export function HostView({ code }: { code: string }) {
           {state.phase === "playing" && <PlayingHost state={state} />}
           {state.phase === "steal" && <StealHost state={state} />}
           {state.phase === "steal_reveal" && <StealJudgeHost state={state} />}
+          {state.phase === "steal_tiebreak" && <TiebreakHost state={state} />}
+          {state.phase === "steal_tiebreak_reveal" && <TiebreakRevealHost state={state} />}
           {state.phase === "round_over" && <RoundOverHost state={state} />}
           {state.phase === "game_over" && <GameOverHost state={state} />}
         </div>
@@ -441,6 +443,62 @@ function StealJudgeHost({ state }: { state: PublicState }) {
       <p className="text-xs text-white/35">
         {noSubmissions ? "Nothing was submitted, so this resolves as a failed steal." : "If both match, the higher-ranked survey answer wins the steal."}
       </p>
+    </section>
+  );
+}
+
+// -------------------------------------------------------------- tie-break
+
+const RPS_LABELS = { rock: "✊ Rock", paper: "✋ Paper", scissors: "✌️ Scissors" } as const;
+
+function TiebreakHost({ state }: { state: PublicState }) {
+  const { serverOffsetMs } = useFeud();
+  const tiebreak = state.tiebreak;
+  if (!tiebreak) return null;
+  return (
+    <section className="host-panel flex flex-col gap-4 border-gold/40 bg-gold/[0.06]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="display text-2xl text-gold">🎲 Captain RPS tie-break</h2>
+          <p className="mt-1 text-sm text-white/55">Top steals matched the same survey answer. Captains throw secretly.</p>
+        </div>
+        {tiebreak.endsAt && <Countdown endsAt={tiebreak.endsAt} offsetMs={serverOffsetMs} className="text-4xl" />}
+      </div>
+      <div className="flex flex-col gap-2">
+        {tiebreak.contenderTeamIds.map((teamId) => {
+          const team = state.teams.find((candidate) => candidate.id === teamId)!;
+          const submitted = tiebreak.submittedTeamIds.includes(teamId);
+          return <div key={teamId} className="flex items-center justify-between rounded-xl bg-white/[0.05] px-4 py-3">
+            <span className="display" style={{ color: team.color }}>{team.name} · {team.captainName ?? "no captain"}</span>
+            <span className={submitted ? "text-emerald-300" : "text-white/35"}>{submitted ? "throw locked ✓" : "choosing…"}</span>
+          </div>;
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TiebreakRevealHost({ state }: { state: PublicState }) {
+  const { hostAction } = useFeud();
+  const tiebreak = state.tiebreak;
+  if (!tiebreak) return null;
+  const winner = tiebreak.winnerTeamId ? state.teams.find((team) => team.id === tiebreak.winnerTeamId) : null;
+  return (
+    <section className="host-panel flex flex-col gap-4 border-neon/40 bg-neon/[0.06]">
+      <h2 className="display text-2xl text-neon">🎲 RPS result · throw {tiebreak.round}</h2>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {tiebreak.choices?.map((choice) => {
+          const team = state.teams.find((candidate) => candidate.id === choice.teamId)!;
+          return <div key={choice.teamId} className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+            <span className="display" style={{ color: team.color }}>{team.name}</span>
+            <span className="ml-2 text-lg text-white">{RPS_LABELS[choice.choice]}</span>
+          </div>;
+        })}
+      </div>
+      <p className="text-center text-lg text-white/70">{winner ? `${winner.name} wins the bank.` : "Still tied — throw again with the remaining captains."}</p>
+      <Button variant={winner ? "gold" : "primary"} className="w-full py-4" onClick={() => hostAction({ type: "continue_tiebreak" })}>
+        {winner ? `Award bank to ${winner.name}` : "Start next throw"}
+      </Button>
     </section>
   );
 }

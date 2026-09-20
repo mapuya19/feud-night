@@ -1,4 +1,4 @@
-import { ANSWER_DURATION_MS, ROUND_MULTIPLIERS } from "./config";
+import { ANSWER_DURATION_MS, ROUND_MULTIPLIERS, RPS_DURATION_MS } from "./config";
 import { bank } from "./engine";
 import type { GameState, Role } from "./types";
 
@@ -42,6 +42,17 @@ export interface PublicSteal {
   results: { teamId: string; text: string; matched: boolean; matchedText: string | null }[] | null;
 }
 
+export interface PublicTiebreak {
+  contenderTeamIds: string[];
+  round: number;
+  endsAt: number | null;
+  durationMs: number;
+  submittedTeamIds: string[];
+  myChoice: "rock" | "paper" | "scissors" | null;
+  choices: { teamId: string; choice: "rock" | "paper" | "scissors" }[] | null;
+  winnerTeamId: string | null;
+}
+
 export interface PublicAnswerer {
   name: string;
   position: number; // 1-based spot in the line
@@ -72,6 +83,7 @@ export interface PublicState {
   myIsAnswerer: boolean; // for player viewers — it's your turn
   pendingAnswer: { text: string; byName: string } | null; // host + controlling team
   steal: PublicSteal | null;
+  tiebreak: PublicTiebreak | null;
   lastAward: { teamId: string; teamName: string; points: number; reason: string } | null;
   winnerTeamId: string | null;
 }
@@ -125,10 +137,10 @@ export function project(state: GameState, viewer: Viewer): PublicState {
   }
 
   let steal: PublicSteal | null = null;
-  if (state.steal && (state.phase === "steal" || state.phase === "steal_reveal" || state.phase === "round_over")) {
+  if (state.steal && (state.phase === "steal" || state.phase === "steal_reveal" || state.phase === "steal_tiebreak" || state.phase === "steal_tiebreak_reveal" || state.phase === "round_over")) {
     const mine = myTeamId ? state.steal.submissions.find((s) => s.teamId === myTeamId) : undefined;
     const resolved = state.steal.results;
-    const showing = state.phase === "steal_reveal" || state.phase === "round_over";
+    const showing = state.phase !== "steal";
     steal = {
       endsAt: state.timer?.kind === "steal" ? state.timer.endsAt : null,
       durationMs: state.timer?.kind === "steal" ? state.timer.durationMs : 15000,
@@ -145,6 +157,22 @@ export function project(state: GameState, viewer: Viewer): PublicState {
             };
           })
         : null,
+    };
+  }
+
+  let tiebreak: PublicTiebreak | null = null;
+  if (state.tiebreak && (state.phase === "steal_tiebreak" || state.phase === "steal_tiebreak_reveal" || state.phase === "round_over")) {
+    const mine = myTeamId ? state.tiebreak.choices.find((choice) => choice.teamId === myTeamId) : undefined;
+    const showing = state.phase !== "steal_tiebreak";
+    tiebreak = {
+      contenderTeamIds: state.tiebreak.contenders,
+      round: state.tiebreak.round,
+      endsAt: state.timer?.kind === "rps" ? state.timer.endsAt : null,
+      durationMs: state.timer?.kind === "rps" ? state.timer.durationMs : RPS_DURATION_MS,
+      submittedTeamIds: state.tiebreak.choices.map((choice) => choice.teamId),
+      myChoice: mine?.choice ?? null,
+      choices: showing ? state.tiebreak.choices : null,
+      winnerTeamId: state.tiebreak.winnerTeamId,
     };
   }
 
@@ -184,6 +212,7 @@ export function project(state: GameState, viewer: Viewer): PublicState {
           : null
         : null,
     steal,
+    tiebreak,
     lastAward: state.lastAward
       ? {
           teamId: state.lastAward.teamId,

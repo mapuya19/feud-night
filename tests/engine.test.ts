@@ -295,6 +295,71 @@ describe("strikes & steal", () => {
     expect(s.lastAward?.reason).toBe("steal");
   });
 
+  it("settles matching top steals with a simultaneous captain RPS throw", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    strikeOut(s);
+    applyPlayerAction(s, "p2", { type: "submit_steal", text: "X" });
+    applyPlayerAction(s, "p3", { type: "submit_steal", text: "Y" });
+    applyPlayerAction(s, "p4", { type: "submit_steal", text: "Z" });
+    applyHostAction(s, {
+      type: "resolve_steal",
+      marks: [
+        { teamId: "pearl", slot: 0 },
+        { teamId: "gold", slot: 0 },
+        { teamId: "platinum", slot: null },
+      ],
+    });
+    expect(s.phase).toBe("steal_tiebreak");
+    expect(s.timer?.kind).toBe("rps");
+    expect(s.tiebreak?.contenders).toEqual(["pearl", "gold"]);
+    s.timer!.endsAt = Date.now() - 1;
+    expect(applyPlayerAction(s, "p2", { type: "submit_rps", choice: "rock" }).ok).toBe(false);
+    expect(s.tiebreak?.choices).toHaveLength(0);
+    s.timer!.endsAt = Date.now() + 10_000;
+    expect(applyPlayerAction(s, "p2", { type: "submit_rps", choice: "rock" }).ok).toBe(true);
+    const pearlView = project(s, { role: "player", playerId: "p2", isHost: false });
+    const goldView = project(s, { role: "player", playerId: "p3", isHost: false });
+    const hostView = project(s, { role: "host", isHost: true });
+    expect(pearlView.tiebreak?.myChoice).toBe("rock");
+    expect(goldView.tiebreak?.myChoice).toBeNull();
+    expect(goldView.tiebreak?.choices).toBeNull();
+    expect(hostView.tiebreak?.choices).toBeNull();
+    expect(applyPlayerAction(s, "p3", { type: "submit_rps", choice: "scissors" }).ok).toBe(true);
+    expect(s.phase).toBe("steal_tiebreak_reveal");
+    expect(s.tiebreak?.winnerTeamId).toBe("pearl");
+    applyHostAction(s, { type: "continue_tiebreak" });
+    expect(s.phase).toBe("round_over");
+    expect(s.teams.pearl.score).toBe(40);
+  });
+
+  it("rethrows RPS when captains make the same choice", () => {
+    const s = setup();
+    applyHostAction(s, { type: "start_game" });
+    applyPlayerAction(s, "p1", { type: "buzz" });
+    strikeOut(s);
+    applyPlayerAction(s, "p2", { type: "submit_steal", text: "X" });
+    applyPlayerAction(s, "p3", { type: "submit_steal", text: "Y" });
+    applyPlayerAction(s, "p4", { type: "submit_steal", text: "Z" });
+    applyHostAction(s, {
+      type: "resolve_steal",
+      marks: [
+        { teamId: "pearl", slot: 0 },
+        { teamId: "gold", slot: 0 },
+        { teamId: "platinum", slot: null },
+      ],
+    });
+    applyPlayerAction(s, "p2", { type: "submit_rps", choice: "rock" });
+    applyPlayerAction(s, "p3", { type: "submit_rps", choice: "rock" });
+    expect(s.phase).toBe("steal_tiebreak_reveal");
+    expect(s.tiebreak?.winnerTeamId).toBeNull();
+    applyHostAction(s, { type: "continue_tiebreak" });
+    expect(s.phase).toBe("steal_tiebreak");
+    expect(s.tiebreak?.round).toBe(2);
+    expect(s.tiebreak?.choices).toHaveLength(0);
+  });
+
   it("failed steal banks revealed points for the controlling team", () => {
     const s = setup();
     applyHostAction(s, { type: "start_game" });

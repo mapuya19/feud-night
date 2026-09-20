@@ -136,12 +136,17 @@ async function run() {
     action: {
       type: "resolve_steal",
       marks: [
-        { teamId: "pearl", slot: null },
+        { teamId: "pearl", slot: 1 },
         { teamId: "platinum", slot: 1 },
       ],
     },
   });
-  await waitFor(board, (state) => state.phase === "round_over" && state.lastAward?.teamId === "platinum", "Cara's team banks the steal");
+  await waitFor(board, (state) => state.phase === "steal_tiebreak", "matching steals open captain RPS");
+  bob.socket.send({ type: "player_action", playerId: bob.playerId, action: { type: "submit_rps", choice: "paper" } });
+  cara.socket.send({ type: "player_action", playerId: cara.playerId, action: { type: "submit_rps", choice: "rock" } });
+  await waitFor(board, (state) => state.phase === "steal_tiebreak_reveal" && state.tiebreak?.winnerTeamId === "pearl", "RPS winner reveals");
+  host.send({ type: "host_action", token: hostToken, action: { type: "continue_tiebreak" } });
+  await waitFor(board, (state) => state.phase === "round_over" && state.lastAward?.teamId === "pearl", "RPS winner banks the steal");
 
   for (let round = 2; round <= 5; round++) {
     host.send({ type: "host_action", token: hostToken, action: { type: "next_round" } });

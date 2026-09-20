@@ -19,8 +19,8 @@ game server. Monorepo: `src/` (Next), `worker/` (Cloudflare), `shared/`
    `shared/protocol.ts`. Validate inputs there and return
    `{ok: false, error}` — never throw for game-rule violations.
 3. **Secrets are enforced in `shared/projection.ts`.** Anything a viewer
-   must not see (unrevealed answers, steal submissions, P1's Fast Money
-   answers) is stripped per-socket before broadcast. If you add state,
+   must not see (unrevealed answers, steal submissions, captain RPS throws
+   before reveal) is stripped per-socket before broadcast. If you add state,
    decide its visibility here and add a privacy test.
 4. **Add tests for every engine change** (`tests/engine.test.ts`), and
    extend `scripts/smoke.mjs` when you add a message type. The smoke

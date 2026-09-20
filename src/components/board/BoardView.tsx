@@ -17,6 +17,8 @@ export function BoardView() {
     case "playing":
     case "steal":
     case "steal_reveal":
+    case "steal_tiebreak":
+    case "steal_tiebreak_reveal":
     case "round_over":
       return <RoundBoard state={state} />;
     case "game_over":
@@ -260,6 +262,19 @@ function RoundBoard({ state }: { state: PublicState }) {
               reveal the steals!
             </motion.div>
           )}
+          {state.phase === "steal_tiebreak" && state.tiebreak && (
+            <motion.div key="rps" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="display text-2xl text-gold">
+              STEAL TIE · CAPTAINS THROW ROCK · PAPER · SCISSORS
+              {state.tiebreak.endsAt && <Countdown endsAt={state.tiebreak.endsAt} offsetMs={serverOffsetMs} className="ml-3 text-white/80" />}
+            </motion.div>
+          )}
+          {state.phase === "steal_tiebreak_reveal" && state.tiebreak && (
+            <motion.div key="rps-reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="display text-2xl text-neon">
+              {state.tiebreak.winnerTeamId
+                ? `${state.teams.find((team) => team.id === state.tiebreak!.winnerTeamId)?.name} WINS THE TIE-BREAK!`
+                : "RPS TIED · THROW AGAIN!"}
+            </motion.div>
+          )}
           {state.phase === "round_over" && state.lastAward && (
             <motion.div
               key={`${state.lastAward.teamId}-${state.lastAward.points}-${state.roundIndex}`}
@@ -295,6 +310,21 @@ function RoundBoard({ state }: { state: PublicState }) {
                 </div>
                 <div className="display mt-2 text-3xl text-white">“{r.text}”</div>
               </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {(state.phase === "steal_tiebreak_reveal" || state.phase === "round_over") && state.tiebreak?.choices && (
+        <div className="grid grid-cols-2 gap-3">
+          {state.tiebreak.choices.map((choice) => {
+            const team = state.teams.find((candidate) => candidate.id === choice.teamId)!;
+            const icon = choice.choice === "rock" ? "✊" : choice.choice === "paper" ? "✋" : "✌️";
+            return (
+              <div key={choice.teamId} className="rounded-2xl border border-white/15 bg-white/[0.05] p-3 text-center">
+                <div className="display text-base" style={{ color: team.color }}>{team.name}</div>
+                <div className="display mt-1 text-3xl text-white">{icon} {choice.choice}</div>
+              </div>
             );
           })}
         </div>

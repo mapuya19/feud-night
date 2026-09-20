@@ -21,6 +21,7 @@ export type HostAction =
   | { type: "skip_question" }
   | { type: "next_round" }
   | { type: "resolve_steal"; marks: { teamId: string; slot: number | null }[] }
+  | { type: "continue_tiebreak" }
   | { type: "set_captain"; teamId: string; playerId: string }
   | { type: "set_team_count"; count: number }
   | { type: "move_player"; playerId: string; teamId: string }
@@ -36,7 +37,8 @@ export type PlayerAction =
   | { type: "release_captain" }
   | { type: "buzz" }
   | { type: "submit_answer"; text: string } // official answer — only the player who is up
-  | { type: "submit_steal"; text: string };
+  | { type: "submit_steal"; text: string }
+  | { type: "submit_rps"; choice: "rock" | "paper" | "scissors" };
 
 /** Worker → Client. */
 export type ServerMessage =
