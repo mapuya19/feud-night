@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { applyHostAction, applyPlayerAction, clampTeamCount, createGame, expireTimer, joinPlayer, setConnected } from "@shared/engine";
+import { applyHostAction, applyPlayerAction as enginePlayerAction, clampTeamCount, createGame, expireTimer as engineExpireTimer, joinPlayer, setConnected } from "@shared/engine";
+import type { PlayerAction } from "@shared/protocol";
 import { project } from "@shared/projection";
 import type { GameState, SurveyQuestion } from "@shared/types";
 import { MAX_TEAM_PLAYERS, MAX_TEAMS, MIN_TEAMS } from "@shared/config";
+
+// Ordinary game-flow tests act on the current race and expire at its deadline.
+// Regression tests below call the engine directly to exercise stale/early input.
+function applyPlayerAction(s: GameState, id: string, action: PlayerAction | { type: "buzz" }) {
+  return enginePlayerAction(s, id, action.type === "buzz" && !("faceoffId" in action)
+    ? { ...action, faceoffId: s.faceoffId } : action as PlayerAction);
+}
+function expireTimer(s: GameState) {
+  return engineExpireTimer(s, s.timer?.endsAt ?? Date.now());
+}
 
 function q(id: string, letter: string): SurveyQuestion {
   return {
@@ -314,8 +325,11 @@ describe("answers & scoring", () => {
     applyHostAction(unanswered, { type: "start_game" });
     applyPlayerAction(unanswered, "p1", { type: "buzz" });
     setConnected(unanswered, "p1", false);
-    expect(unanswered.phase).toBe("faceoff"); // no face-off answer, so reopen buzzers
-    expect(unanswered.timer).toBeNull();
+    expect(unanswered.phase).toBe("faceoff_answer"); // brief disconnect preserves the win
+    expect(unanswered.buzzWinnerId).toBe("p1");
+    expect(unanswered.timer?.kind).toBe("answer");
+    setConnected(unanswered, "p1", true);
+    expect(applyPlayerAction(unanswered, "p1", { type: "submit_answer", text: "back online" }).ok).toBe(true);
   });
 
   it("rounds 3-4 are double points", () => {

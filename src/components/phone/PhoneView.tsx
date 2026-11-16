@@ -168,7 +168,6 @@ function useTeam(): PublicState["teams"][number] | null {
 // ------------------------------------------------------------- phase panel
 
 function PhasePanel({ state }: { state: PublicState }) {
-  const { playerId, playerAction } = useFeud();
   if (state.myJoinsNextRound) {
     const team = state.teams.find((candidate) => candidate.id === state.myTeamId);
     return (
@@ -283,21 +282,36 @@ function LobbyPanel({ state }: { state: PublicState }) {
 // ---------------------------------------------------------------- faceoff
 
 function FaceoffPanel({ state }: { state: PublicState }) {
-  const { playerAction } = useFeud();
-  const myTeam = useTeam();
+  const { playerAction, status, pendingBuzzId } = useFeud();
   const amRep = state.myIsRep;
+  const live = status === "connected";
+  const buzz = () => playerAction({ type: "buzz", faceoffId: state.faceoffId });
   if (amRep) {
     return (
       <div className="flex flex-col items-center gap-3">
         <p className="display text-center text-lg text-white/70">You&apos;re up. First to buzz gets the first answer chance!</p>
         <motion.button
           whileTap={{ scale: 0.94 }}
-          onClick={() => playerAction({ type: "buzz" })}
+          type="button"
+          disabled={!live || !!pendingBuzzId}
+          onPointerDown={(event) => {
+            if (event.isPrimary && event.button === 0) buzz();
+          }}
+          onClick={(event) => {
+            // Keyboard/assistive activation has no pointer-down. Pointer clicks
+            // already sent on initial contact, so never send again on release.
+            if (event.detail === 0) buzz();
+          }}
           aria-label="Buzz in for your team"
-          className="no-select display h-44 w-full rounded-3xl border-4 border-red-300/60 bg-gradient-to-b from-red-500 to-red-700 text-4xl text-white animate-buzz-glow"
+          aria-describedby="buzzer-status"
+          aria-busy={!!pendingBuzzId}
+          className="no-select display h-44 w-full touch-manipulation rounded-3xl bg-red-600 text-4xl text-white focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:bg-red-950 disabled:text-white/75"
         >
-          BUZZ
+          {!live ? "Reconnecting…" : pendingBuzzId ? "Sending…" : "BUZZ"}
         </motion.button>
+        <p id="buzzer-status" role="status" className="text-center text-sm text-white/75">
+          {!live ? "Your buzzer will be ready when the connection is live." : pendingBuzzId ? "Waiting for the server. Watch the board for the winner." : "Ready — tap once. The server decides who buzzed first."}
+        </p>
       </div>
     );
   }

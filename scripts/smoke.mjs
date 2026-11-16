@@ -7,6 +7,7 @@
  */
 const BASE = process.argv[2] ?? "http://localhost:8787";
 const WS_BASE = BASE.replace(/^http/, "ws");
+const sockets = new Set();
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -21,6 +22,7 @@ function makeSocket() {
     latest: null,
     connect(path) {
       ws = new WebSocket(`${WS_BASE}${path}`);
+      sockets.add(ws);
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "state") {
@@ -44,6 +46,7 @@ function makeSocket() {
     send(message) {
       ws.send(JSON.stringify(message));
     },
+    close() { ws.close(); },
   };
   return api;
 }
@@ -99,9 +102,8 @@ async function run() {
     const welcome = waitForMessage(joining, (message) => message.type === "welcome" && !!message.playerId, `${name} welcome`);
     joining.send({ type: "join", name, teamId, claimCaptain });
     const { playerId } = await welcome;
-    const socket = await makeSocket().connect(`/room/${code}/ws?role=player&playerId=${playerId}`);
-    await waitFor(socket, (state) => state.myTeamId === teamId, `${name} reconnected`);
-    return { name, playerId, socket };
+    await waitFor(joining, (state) => state.myTeamId === teamId, `${name} bound without reconnect`);
+    return { name, playerId, socket: joining };
   }
 
   const alice = await joinPlayer("Alice", "diamond", true);
@@ -109,13 +111,43 @@ async function run() {
   const cara = await joinPlayer("Cara", "platinum", true);
   const dave = await joinPlayer("Dave", "diamond");
   const players = [alice, bob, cara, dave];
-  await waitFor(board, (state) => state.teams.length === 3, "three-team room configured");
+  await waitFor(board, (state) => state.teams.length === 3 && state.teams.find(team => team.id === "diamond")?.playerCount === 2, "three-team room configured");
   assert(board.latest.teams.find((team) => team.id === "diamond").playerCount === 2, "Diamond has two players for rotation");
 
   host.send({ type: "host_action", token: hostToken, action: { type: "start_game" } });
   await waitFor(board, (state) => state.phase === "faceoff", "face-off begins");
 
-  alice.socket.send({ type: "player_action", playerId: alice.playerId, action: { type: "buzz" } });
+  // A claimed host role must not grant private state without the token.
+  await new Promise((resolve, reject) => {
+    const unauthorized = new WebSocket(`${WS_BASE}/room/${code}/ws?role=host`);
+    sockets.add(unauthorized);
+    const timeout = setTimeout(() => reject(new Error("unauthenticated host upgrade did not fail")), 5000);
+    unauthorized.onerror = () => { clearTimeout(timeout); resolve(); };
+    unauthorized.onopen = () => { clearTimeout(timeout); reject(new Error("unauthenticated host was accepted")); };
+  });
+  assert(true, "host upgrade requires the host token");
+
+  const oldRace = board.latest.faceoffId;
+  const raceReplies = [alice, bob].map((p) => waitForMessage(p.socket, m => m.type === "action_result" && m.requestId === p.name, `${p.name} race result`));
+  for (const p of [alice, bob]) p.socket.send({ type: "player_action", playerId: p.playerId, requestId: p.name, action: { type: "buzz", faceoffId: oldRace } });
+  const replies = await Promise.all(raceReplies);
+  assert(replies.filter(r => r.ok).length === 1, "simultaneous reps get exactly one accepted buzz and one explicit rejection");
+  await waitFor(board, state => state.phase === "faceoff_answer", "race winner on board");
+  const winner = replies[0].ok ? alice : bob;
+  winner.socket.close();
+  await waitFor(host, state => state.players.some(p => p.id === winner.playerId && !p.connected), "winner disconnect recorded");
+  assert(host.latest.phase === "faceoff_answer", "winning buzz survives a transient disconnect");
+  winner.socket = await makeSocket().connect(`/room/${code}/ws?role=player&playerId=${winner.playerId}`);
+  await waitFor(winner.socket, state => state.myIsAnswerer, "winner rebinds the same answer opportunity");
+
+  host.send({ type: "host_action", token: hostToken, action: { type: "start_faceoff" } });
+  await waitFor(board, state => state.phase === "faceoff" && state.faceoffId !== oldRace, "new race generation");
+  const stale = waitForMessage(alice.socket, m => m.type === "action_result" && m.requestId === "stale", "stale buzz rejected");
+  alice.socket.send({ type: "player_action", playerId: alice.playerId, requestId: "stale", action: { type: "buzz", faceoffId: oldRace } });
+  assert(!(await stale).ok, "delayed buzz cannot enter a reopened race");
+  const acknowledged = waitForMessage(alice.socket, m => m.type === "action_result" && m.requestId === "live", "live buzz acknowledged");
+  alice.socket.send({ type: "player_action", playerId: alice.playerId, requestId: "live", action: { type: "buzz", faceoffId: board.latest.faceoffId } });
+  assert((await acknowledged).ok, "current buzz acknowledged after persistence");
   await waitFor(board, (state) => state.phase === "faceoff_answer" && state.answerer?.name === "Alice", "Alice gets the first face-off answer");
   // Alice answers aloud; the host pauses the clock instead of requiring a type-in.
   host.send({ type: "host_action", token: hostToken, action: { type: "hear_answer" } });
@@ -155,7 +187,7 @@ async function run() {
     const diamondRep = board.latest.teams.find((team) => team.id === "diamond").repName;
     const rep = players.find((player) => player.name === diamondRep);
     assert(rep, `round ${round} Diamond rep is connected`);
-    rep.socket.send({ type: "player_action", playerId: rep.playerId, action: { type: "buzz" } });
+    rep.socket.send({ type: "player_action", playerId: rep.playerId, action: { type: "buzz", faceoffId: board.latest.faceoffId } });
     await waitFor(board, (state) => state.phase === "faceoff_answer", `round ${round} face-off answer`);
     host.send({ type: "host_action", token: hostToken, action: { type: "reveal_answer", slot: 0 } });
     const playing = await waitFor(board, (state) => state.phase === "playing", `round ${round} control awarded`);
@@ -167,11 +199,17 @@ async function run() {
 
   host.send({ type: "host_action", token: hostToken, action: { type: "next_round" } });
   await waitFor(board, (state) => state.phase === "game_over", "game ends after the fifth board");
+  const closed = waitForMessage(host, m => m.type === "room_closed", "room close notification");
   host.send({ type: "host_action", token: hostToken, action: { type: "close_room" } });
+  await closed;
   console.log("\n🎉 SMOKE TEST PASSED — current full game loop works over real WebSockets");
 }
 
 run().catch((error) => {
   console.error(`✗ ${error.message}`);
-  process.exit(1);
+  process.exitCode = 1;
+}).finally(() => {
+  for (const ws of sockets) {
+    try { ws.close(); } catch { /* already closed */ }
+  }
 });

@@ -87,6 +87,7 @@ export interface PublicState {
   questionSelection: PublicQuestionSelection | null; // host only, prompts never answers
   question: { prompt: string | null; slots: PublicSlot[]; bank: number } | null;
   strikes: number;
+  faceoffId: number;
   buzzWinnerName: string | null;
   answerer: PublicAnswerer | null; // who's giving the current spoken answer
   myIsAnswerer: boolean; // for player viewers — it's your turn, including face-off
@@ -214,6 +215,7 @@ export function project(state: GameState, viewer: Viewer): PublicState {
     questionSelection,
     question,
     strikes: state.strikes,
+    faceoffId: state.faceoffId ?? 0,
     buzzWinnerName: state.buzzWinnerId ? state.players[state.buzzWinnerId]?.name ?? null : null,
     answerer: (() => {
       if ((state.phase !== "playing" && state.phase !== "faceoff_answer") || !state.answererId) return null;

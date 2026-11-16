@@ -10,7 +10,7 @@ export type ClientMessage =
   // Host actions (host only)
   | { type: "host_action"; token: string; action: HostAction }
   // Player actions (player only)
-  | { type: "player_action"; playerId: string; action: PlayerAction };
+  | { type: "player_action"; playerId: string; action: PlayerAction; requestId?: string };
 
 export type HostAction =
   | { type: "start_game" }
@@ -38,7 +38,7 @@ export type PlayerAction =
   | { type: "choose_team"; teamId: string }
   | { type: "claim_captain" }
   | { type: "release_captain" }
-  | { type: "buzz" }
+  | { type: "buzz"; faceoffId: number }
   | { type: "submit_answer"; text: string } // official answer — only the player who is up
   | { type: "submit_steal"; text: string }
   | { type: "submit_rps"; choice: "rock" | "paper" | "scissors" };
@@ -47,6 +47,7 @@ export type PlayerAction =
 export type ServerMessage =
   | { type: "welcome"; gameCode: string; role: Role; playerId?: string }
   | { type: "state"; state: unknown; serverTime: number }
+  | { type: "action_result"; requestId: string; ok: boolean; error?: string }
   | { type: "error"; message: string }
   | { type: "room_closed"; message: string }
   | { type: "pong" };

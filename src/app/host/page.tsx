@@ -10,7 +10,7 @@ import { ErrorToast } from "@/components/ui";
 function HostInner() {
   const params = useSearchParams();
   const code = (params.get("g") ?? "").toUpperCase();
-  const { connect, lastError, setError } = useFeud();
+  const { connect, disconnect, lastError, setError } = useFeud();
 
   useEffect(() => {
     if (code.length !== 4) return;
@@ -18,8 +18,8 @@ function HostInner() {
     if (hostToken) connect({ code, role: "host", hostToken });
     // No token on this browser → read-only is not allowed for hosts; the
     // host console requires the browser that created the room.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+    return disconnect;
+  }, [code, connect, disconnect]);
 
   if (code.length !== 4) {
     return <div className="flex min-h-dvh items-center justify-center text-white/50">Missing room code.</div>;
