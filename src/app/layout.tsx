@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const outfit = Outfit({
-  subsets: ["latin"],
+// Keep the existing typefaces local: clean builds must not depend on Google
+// Fonts requests or remote CSS parsing. Licenses/sources live in ./fonts/.
+const outfit = localFont({
+  src: "./fonts/outfit-latin-variable.woff2",
   variable: "--font-outfit",
-  weight: ["600", "700", "800", "900"],
+  weight: "100 900",
   display: "swap",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "./fonts/inter-latin-variable.woff2",
   variable: "--font-inter",
+  weight: "100 900",
   display: "swap",
 });
 

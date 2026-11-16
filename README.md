@@ -6,8 +6,10 @@ runs the show. Real-time over WebSockets, with no database to provision.
 
 **Forking:** the source is [MIT licensed](LICENSE). Deploy both the frontend
 and Worker to your own accounts; no access to the original author's accounts
-is needed. Bundled third-party sound effects keep their own license — see
-[the sound credits](public/sfx/CREDITS.md).
+is needed. Bundled third-party assets keep their own licenses — see
+[the sound credits](public/sfx/CREDITS.md) and
+[font licenses](src/app/fonts/README.md). Fonts are vendored, so builds do not
+need to fetch Google Fonts.
 
 ## How it plays
 
