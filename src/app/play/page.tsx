@@ -9,13 +9,12 @@ import { ErrorToast } from "@/components/ui";
 function PlayInner() {
   const params = useSearchParams();
   const code = (params.get("g") ?? "").toUpperCase();
-  const { connect, lastError, setError } = useFeud();
+  const { connect, disconnect, lastError, setError } = useFeud();
 
   useEffect(() => {
     if (code.length === 4) connect({ code, role: "player" });
-    return () => undefined;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+    return disconnect;
+  }, [code, connect, disconnect]);
 
   if (code.length !== 4) {
     return (

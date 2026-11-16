@@ -103,7 +103,7 @@ let music: HTMLAudioElement | null = null;
 
 function startMusic(): void {
   if (!music) {
-    music = new Audio("/sfx/lobby-loop.mp3");
+    music = new Audio("/sfx/lobby-loop.wav");
     music.loop = true;
     music.volume = MUSIC_VOLUME;
   }

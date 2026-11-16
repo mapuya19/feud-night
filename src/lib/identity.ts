@@ -31,6 +31,10 @@ export function savePlayer(code: string, id: PlayerIdentity): void {
   safeSet(PLAYER_PREFIX + code, JSON.stringify(id));
 }
 
+export function clearPlayer(code: string): void {
+  try { localStorage.removeItem(PLAYER_PREFIX + code); } catch { /* private mode */ }
+}
+
 export function loadPlayer(code: string): PlayerIdentity | null {
   const raw = safeGet(PLAYER_PREFIX + code);
   if (!raw) return null;

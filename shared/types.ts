@@ -90,6 +90,8 @@ export interface GameState {
   strikes: number;
   controllingTeamId: string | null;
   buzzWinnerId: string | null;
+  /** Monotonic race generation; delayed taps cannot enter a reopened face-off. */
+  faceoffId: number;
   answererId: string | null; // who's giving the official answer (down the line)
   answerHeard: boolean; // host heard a spoken answer and paused the clock to judge it
   pendingAnswer: Suggestion | null; // optional typed answer awaiting host judgment

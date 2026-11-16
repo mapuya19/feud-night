@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { GameClient, createRoom } from "./ws-client";
 import type { HostAction, PlayerAction, ServerMessage } from "@shared/protocol";
 import type { PublicState } from "@shared/projection";
-import { loadPlayer, rememberName, saveHost, savePlayer } from "./identity";
+import { clearPlayer, loadPlayer, rememberName, savePlayer } from "./identity";
 
 export type ConnStatus = "idle" | "connecting" | "connected" | "reconnecting" | "error";
 
@@ -25,15 +25,18 @@ interface FeudStore {
   hostToken: string | null;
   state: PublicState | null;
   serverOffsetMs: number;
+  pendingBuzzId: string | null;
   connect: (args: ConnectArgs) => void;
   join: (name: string, teamId: string, claimCaptain: boolean) => void;
   hostAction: (action: HostAction) => void;
-  playerAction: (action: PlayerAction) => void;
+  playerAction: (action: PlayerAction) => boolean;
   setError: (msg: string | null) => void;
   disconnect: () => void;
 }
 
 let client: GameClient | null = null;
+// Correlation only, not a credential. Works on HTTP LANs where randomUUID is unavailable.
+let nextRequestId = 0;
 
 export const useFeud = create<FeudStore>((set, get) => ({
   client: null,
@@ -46,34 +49,43 @@ export const useFeud = create<FeudStore>((set, get) => ({
   hostToken: null,
   state: null,
   serverOffsetMs: 0,
+  pendingBuzzId: null,
 
   connect: ({ code, role, hostToken }) => {
     client?.disconnect();
     client = new GameClient();
-    set({ status: "connecting", code, role, hostToken: hostToken ?? null, lastError: null, state: null });
-
     const saved = role === "player" ? loadPlayer(code) : null;
-    if (saved) set({ playerId: saved.playerId, playerName: saved.name });
+    set({ status: "connecting", code, role, hostToken: hostToken ?? null, lastError: null, state: null,
+      playerId: saved?.playerId ?? null, playerName: saved?.name ?? null, pendingBuzzId: null });
 
     client.connect(
       { code, role, playerId: saved?.playerId, hostToken },
       {
-        onOpen: () => set({ status: "connected", lastError: null }),
+        onOpen: () => set({ status: "connected" }),
         onDisconnect: () => {
-          if (get().status !== "error") set({ status: "reconnecting" });
+          if (get().status !== "error") set({
+            status: "reconnecting", pendingBuzzId: null,
+            ...(get().pendingBuzzId ? { lastError: "Your tap wasn't confirmed. Check the board, then tap again once reconnected." } : {}),
+          });
         },
+        onRoomClosed: (message) => set({ status: "error", lastError: message, state: null, pendingBuzzId: null }),
         onMessage: (msg: ServerMessage) => {
           switch (msg.type) {
             case "welcome": {
               if (msg.role === "player" && msg.playerId) {
                 const existing = get().playerId;
                 if (existing && existing === msg.playerId) break; // reconnect confirmed
-                // First join: server issued a fresh playerId. Bind this socket
-                // to it by reconnecting with ?playerId= so actions are owned.
+                // The Worker already bound this socket; remember the identity
+                // for future reconnects without an unnecessary socket handoff.
                 savePlayer(code, { playerId: msg.playerId, name: get().playerName ?? "" });
                 rememberName(get().playerName ?? "");
                 set({ playerId: msg.playerId });
-                client?.reconnectAs({ code, role: "player", playerId: msg.playerId });
+                client?.updateIdentity({ code, role: "player", playerId: msg.playerId });
+              } else if (msg.role === "player" && get().playerId) {
+                // Room codes can be reused after cleanup; forget an old identity.
+                clearPlayer(code);
+                set({ playerId: null, pendingBuzzId: null });
+                client?.updateIdentity({ code, role: "player" });
               }
               break;
             }
@@ -82,6 +94,11 @@ export const useFeud = create<FeudStore>((set, get) => ({
               set({ state: st, serverOffsetMs: st.serverTime - Date.now() });
               break;
             }
+            case "action_result":
+              if (msg.requestId === get().pendingBuzzId) {
+                set({ pendingBuzzId: null, ...(!msg.ok ? { lastError: msg.error ?? "Buzz rejected" } : {}) });
+              }
+              break;
             case "room_closed":
               client?.disconnect();
               set({ status: "error", lastError: msg.message, state: null });
@@ -103,19 +120,32 @@ export const useFeud = create<FeudStore>((set, get) => ({
     if (!trimmed || !teamId || !client) return;
     rememberName(trimmed);
     set({ playerName: trimmed });
-    client.send({ type: "join", name: trimmed, teamId, claimCaptain });
+    if (!client.send({ type: "join", name: trimmed, teamId, claimCaptain }))
+      set({ lastError: "Reconnecting — wait for live, then join again." });
   },
 
   hostAction: (action) => {
     const { hostToken, code } = get();
     if (!hostToken || !code || !client) return;
-    client.send({ type: "host_action", token: hostToken, action });
+    if (!client.send({ type: "host_action", token: hostToken, action }))
+      set({ lastError: "Reconnecting — this action was not sent. Try again when live." });
   },
 
   playerAction: (action) => {
-    const { playerId } = get();
-    if (!playerId || !client) return;
-    client.send({ type: "player_action", playerId, action });
+    const { playerId, pendingBuzzId, status } = get();
+    if (!playerId || !client) return false;
+    if (action.type === "buzz" && pendingBuzzId) return false;
+    if (status !== "connected") {
+      set({ lastError: "Reconnecting — your tap was not sent. Tap again when live." });
+      return false;
+    }
+    const requestId = action.type === "buzz" ? `buzz-${Date.now()}-${++nextRequestId}` : undefined;
+    if (requestId) set({ pendingBuzzId: requestId, lastError: null });
+    if (!client.send({ type: "player_action", playerId, action, requestId })) {
+      set({ pendingBuzzId: null, lastError: "Your tap was not sent. Wait for live and tap again." });
+      return false;
+    }
+    return true;
   },
 
   setError: (msg) => set({ lastError: msg }),
@@ -123,7 +153,7 @@ export const useFeud = create<FeudStore>((set, get) => ({
   disconnect: () => {
     client?.disconnect();
     client = null;
-    set({ client: null, status: "idle" });
+    set({ client: null, status: "idle", pendingBuzzId: null });
   },
 }));
 

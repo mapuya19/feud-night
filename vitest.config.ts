@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": path.resolve(__dirname, "shared"),
+      "@": path.resolve(__dirname, "src"),
+      "cloudflare:workers": path.resolve(__dirname, "tests/helpers/cloudflare.ts"),
     },
   },
 });

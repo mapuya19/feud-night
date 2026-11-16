@@ -61,6 +61,7 @@ export function createGame(
     strikes: 0,
     controllingTeamId: null,
     buzzWinnerId: null,
+    faceoffId: 0,
     answererId: null,
     answerHeard: false,
     pendingAnswer: null,
@@ -123,16 +124,8 @@ export function setConnected(state: GameState, playerId: string, connected: bool
   const p = state.players[playerId];
   if (p && p.connected !== connected) p.connected = connected;
   if (!p || connected) return;
-  // A disconnected face-off buzzer simply forfeits that attempt; reopen the race.
-  if (
-    state.phase === "faceoff_answer" &&
-    state.buzzWinnerId === playerId &&
-    !state.answerHeard &&
-    !state.pendingAnswer
-  ) {
-    resetFaceoff(state);
-    return;
-  }
+  // A transient disconnect must not revoke a winning buzz. The existing answer
+  // deadline bounds the wait; the host can still hear/judge a spoken answer.
   // A submitted answer remains with the host even if its player drops. Only
   // pass the mic when the active player disconnected before submitting.
   if (
@@ -168,6 +161,7 @@ function clearTimer(state: GameState): void {
 
 /** Clear an unanswered face-off attempt and let every rep buzz again. */
 function resetFaceoff(state: GameState): void {
+  state.faceoffId = (state.faceoffId ?? 0) + 1;
   state.phase = "faceoff";
   state.controllingTeamId = null;
   state.buzzWinnerId = null;
@@ -293,7 +287,7 @@ function startRound(state: GameState, roundIndex: number): EngineResult {
   state.reps = {}; // clear manual overrides each round
   loadNextQuestion(state);
   assignReps(state);
-  state.phase = "faceoff";
+  resetFaceoff(state);
   return ok;
 }
 
@@ -406,7 +400,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       state.lastAward = null;
       loadNextQuestion(state);
       assignReps(state);
-      state.phase = "faceoff";
+      resetFaceoff(state);
       return ok;
     }
 
@@ -517,7 +511,9 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       const team = state.teams[action.teamId];
       if (!team || !state.players[action.playerId]) return fail("Unknown team/player");
       if (state.players[action.playerId].teamId !== action.teamId) return fail("Player not on that team");
+      if (!eligibleThisRound(state, action.playerId)) return fail("That player joins next round");
       state.reps[action.teamId] = action.playerId;
+      if (state.phase === "faceoff") resetFaceoff(state);
       return ok;
     }
 
@@ -550,6 +546,7 @@ export function applyHostAction(state: GameState, action: HostAction): EngineRes
       fresh.selectedQuestionIds = state.selectedQuestionIds ?? fresh.selectedQuestionIds;
       for (const player of Object.values(fresh.players)) player.eligibleFromRound = 0;
       for (const t of Object.values(fresh.teams)) t.score = 0;
+      fresh.faceoffId = (state.faceoffId ?? 0) + 1;
       Object.assign(state, fresh);
       return ok;
     }
@@ -587,7 +584,10 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
     }
 
     case "buzz": {
-      if (state.phase !== "faceoff") return fail("No face-off in progress");
+      if (state.phase !== "faceoff") return fail("Another rep already buzzed, or the face-off has ended");
+      if (!Number.isSafeInteger(action.faceoffId) || action.faceoffId !== (state.faceoffId ?? 0))
+        return fail("Buzzers were reset — wait for the live buzzer and tap again");
+      if (!eligibleThisRound(state, playerId)) return fail("You join next round");
       if (state.reps[team.id] !== playerId) return fail("You're not the rep");
       state.controllingTeamId = null;
       state.buzzWinnerId = playerId;
@@ -620,6 +620,7 @@ export function applyPlayerAction(state: GameState, playerId: string, action: Pl
 
     case "submit_steal": {
       if (state.phase !== "steal" || !state.steal) return fail("No steal in progress");
+      if (state.timer?.kind !== "steal" || Date.now() >= state.timer.endsAt) return fail("Steal time is up");
       if (state.controllingTeamId === team.id) return fail("Controlling team can't steal");
       if (team.captainId !== playerId) return fail("Only the captain submits the steal");
       if (state.steal.submissions.some((s) => s.teamId === team.id)) return fail("Already submitted");
@@ -662,8 +663,8 @@ function maybeFinishSteal(state: GameState): void {
 }
 
 /** Called when the active timer expires. Returns true if state changed. */
-export function expireTimer(state: GameState): boolean {
-  if (!state.timer) return false;
+export function expireTimer(state: GameState, now = Date.now()): boolean {
+  if (!state.timer || now < state.timer.endsAt) return false;
   const kind = state.timer.kind;
   state.timer = null;
   if (kind === "steal") {

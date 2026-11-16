@@ -42,7 +42,7 @@ export class FeudRoom extends DurableObject {
       await this.closeRoom("Room expired after 24 hours of inactivity");
       return;
     }
-    this.scheduleAlarm();
+    await this.scheduleAlarm();
   }
 
   private isExpired(now = Date.now()): boolean {
@@ -53,19 +53,27 @@ export class FeudRoom extends DurableObject {
     if (!this.state) return;
     if (touch) this.state.lastActivityAt = Date.now();
     await this.ctx.storage.put("state", this.state);
-    this.scheduleAlarm();
+    await this.scheduleAlarm();
   }
 
   /** Schedule whichever happens first: an active game timer or room expiry. */
-  private scheduleAlarm(): void {
+  private async scheduleAlarm(): Promise<void> {
     if (!this.state) {
-      this.ctx.storage.deleteAlarm().catch(() => {});
+      await this.ctx.storage.deleteAlarm();
       return;
     }
     const expiresAt = this.state.lastActivityAt + ROOM_TTL_MS;
     const timer = timerDeadline(this.state);
-    const deadline = timer && timer > Date.now() ? Math.min(timer, expiresAt) : expiresAt;
-    this.ctx.storage.setAlarm(Math.max(deadline, Date.now())).catch(() => {});
+    // Overdue timers need immediate processing, not replacement by the room TTL.
+    const deadline = timer === null ? expiresAt : Math.min(timer, expiresAt);
+    await this.ctx.storage.setAlarm(Math.max(deadline, Date.now()));
+  }
+
+  private async advanceExpiredTimer(): Promise<void> {
+    if (this.state && expireTimer(this.state)) {
+      await this.persist(false);
+      this.broadcast();
+    }
   }
 
   /** Notify every connected screen, drop persistent state, and free the room code. */
@@ -97,7 +105,7 @@ export class FeudRoom extends DurableObject {
     }
 
     if (url.pathname.endsWith("/create") && request.method === "POST") {
-      if (this.state) return json({ ok: true, code: this.state.code });
+      if (this.state) return json({ error: "Room code already allocated" }, 409);
       const body = (await request.json().catch(() => ({}))) as { hostToken?: string; teamCount?: number };
       if (!body.hostToken) return json({ error: "hostToken required" }, 400);
       this.state = createGame(
@@ -111,7 +119,7 @@ export class FeudRoom extends DurableObject {
     }
 
     if (url.pathname.endsWith("/exists")) {
-      return this.state ? json({ exists: true }) : new Response(null, { status: 404 });
+      return this.state ? json({ exists: true }) : json({ exists: false }, 404);
     }
 
     if (url.pathname.endsWith("/ws")) {
@@ -131,17 +139,20 @@ export class FeudRoom extends DurableObject {
     const role: Role = roleParam && ALLOWED_ROLES.includes(roleParam) ? roleParam : "player";
     const playerId = url.searchParams.get("playerId") ?? "";
     const token = url.searchParams.get("token") ?? "";
+    if (role === "host" && token !== this.state!.hostToken) return json({ error: "Host only" }, 403);
+    await this.advanceExpiredTimer();
+    const boundPlayerId = role === "player" && this.state!.players[playerId] ? playerId : null;
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
     this.ctx.acceptWebSocket(server);
-    writeAttachment(server, { role, playerId: playerId || null, hostToken: token || null });
+    writeAttachment(server, { role, playerId: boundPlayerId, hostToken: role === "host" ? token : null });
     // Cheap app-level keepalive: auto-answered without waking the object.
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
 
     const welcome: Record<string, unknown> = { type: "welcome", gameCode: this.state!.code, role };
-    if (role === "player" && playerId && this.state!.players[playerId]) {
+    if (boundPlayerId) {
       welcome.playerId = playerId;
       setConnected(this.state!, playerId, true);
     }
@@ -165,30 +176,43 @@ export class FeudRoom extends DurableObject {
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw) as ClientMessage;
+      if (!msg || typeof msg !== "object" || typeof msg.type !== "string") throw new Error("Bad envelope");
+      if ((msg.type === "host_action" || msg.type === "player_action") &&
+          (!msg.action || typeof msg.action !== "object" || typeof msg.action.type !== "string"))
+        throw new Error("Bad action");
     } catch {
       ws.send(JSON.stringify({ type: "error", message: "Bad message" }));
       return;
     }
 
+    await this.advanceExpiredTimer();
     let dirty = false;
+    let result: { requestId: string; ok: boolean; error?: string } | null = null;
     try {
       switch (msg.type) {
         case "join": {
+          const att = readAttachment(ws);
+          if (att?.role !== "player" || att.playerId) {
+            ws.send(JSON.stringify({ type: "error", message: "Already joined or not a player" }));
+            return;
+          }
           const id = crypto.randomUUID();
           const res = joinPlayer(this.state, id, msg.name ?? "", msg.teamId, msg.claimCaptain);
           if (!res.ok) {
             ws.send(JSON.stringify({ type: "error", message: res.error ?? "Join failed" }));
             return;
           }
-          // Tags are immutable after accept, so the client reconnects once with
-          // ?playerId= to bind this socket to its identity.
+          // Attachments are mutable: bind immediately without a fragile extra
+          // connection handoff. The identity still survives future reconnects.
+          writeAttachment(ws, { role: "player", playerId: id, hostToken: null });
           ws.send(JSON.stringify({ type: "welcome", gameCode: this.state.code, role: "player", playerId: id }));
           dirty = true;
           break;
         }
         case "rejoin": {
           const id = msg.playerId;
-          if (!this.state.players[id]) {
+          const att = readAttachment(ws);
+          if (att?.role !== "player" || att.playerId !== id || !this.state.players[id]) {
             ws.send(JSON.stringify({ type: "error", message: "Unknown player — rejoin as new" }));
             return;
           }
@@ -199,6 +223,7 @@ export class FeudRoom extends DurableObject {
         }
         case "host_auth": {
           if (msg.token === this.state.hostToken) {
+            writeAttachment(ws, { role: "host", playerId: null, hostToken: msg.token });
             this.state.hostConnectedAt = Date.now();
             dirty = true;
           } else {
@@ -222,12 +247,14 @@ export class FeudRoom extends DurableObject {
         }
         case "player_action": {
           const att = readAttachment(ws);
-          if (!att?.playerId || att.playerId !== msg.playerId) {
-            ws.send(JSON.stringify({ type: "error", message: "Reconnect with your playerId to play" }));
-            return;
+          const res = att?.role === "player" && att.playerId && att.playerId === msg.playerId
+            ? applyPlayerAction(this.state, msg.playerId, msg.action as PlayerAction)
+            : { ok: false, error: "Reconnect with your playerId to play" };
+          if (typeof msg.requestId === "string" && msg.requestId.length <= 100) {
+            result = { requestId: msg.requestId, ok: res.ok, error: res.error };
+          } else if (!res.ok) {
+            ws.send(JSON.stringify({ type: "error", message: res.error ?? "Rejected" }));
           }
-          const res = applyPlayerAction(this.state, msg.playerId, msg.action as PlayerAction);
-          if (!res.ok) ws.send(JSON.stringify({ type: "error", message: res.error ?? "Rejected" }));
           dirty = res.ok;
           break;
         }
@@ -237,26 +264,31 @@ export class FeudRoom extends DurableObject {
         default:
           return;
       }
-    } catch (err) {
-      ws.send(JSON.stringify({ type: "error", message: `Server error: ${String(err)}` }));
+    } catch {
+      ws.send(JSON.stringify({ type: "error", message: "Invalid action" }));
     }
 
     if (dirty) {
       await this.persist();
       this.broadcast();
     }
+    // A success acknowledges a persisted mutation, never just receipt of a tap.
+    if (result) ws.send(JSON.stringify({ type: "action_result", ...result }));
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
+    // Our compatibility date predates automatic close-frame replies.
+    try { ws.close(); } catch { /* already closed */ }
     await this.ensureLoaded();
     if (!this.state) return;
     const att = readAttachment(ws);
-    if (att?.playerId) {
+    if (att?.role === "player" && att.playerId) {
       // A player can legitimately have two tabs or be mid-reconnect. Closing
       // one socket must not mark them offline or skip their answer turn.
       const stillConnected = this.ctx
         .getWebSockets()
-        .some((socket) => socket !== ws && readAttachment(socket)?.playerId === att.playerId);
+        .some((socket) => socket !== ws && socket.readyState === WebSocket.OPEN &&
+          readAttachment(socket)?.role === "player" && readAttachment(socket)?.playerId === att.playerId);
       setConnected(this.state, att.playerId, stillConnected);
       await this.persist();
       this.broadcast();
@@ -285,7 +317,7 @@ export class FeudRoom extends DurableObject {
       await this.persist(false);
       this.broadcast();
     } else {
-      this.scheduleAlarm();
+      await this.scheduleAlarm();
     }
   }
 
@@ -298,8 +330,9 @@ export class FeudRoom extends DurableObject {
       const att = readAttachment(ws) as SocketAttachment | null;
       const viewer = {
         role: att?.role ?? "player",
-        playerId: att?.playerId ?? undefined,
-        isHost: att?.role === "host",
+        playerId: att?.role === "player" ? att.playerId ?? undefined : undefined,
+        // Recheck even for attachments accepted before authentication was fixed.
+        isHost: att?.role === "host" && att.hostToken === snapshot.hostToken,
       };
       try {
         ws.send(
